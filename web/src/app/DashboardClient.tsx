@@ -5,7 +5,15 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import ChatUI from '@/components/ChatUI';
 
-export default function DashboardClient({ initialDeviceStatus, initialSensorData }: { initialDeviceStatus: any, initialSensorData: any[] }) {
+export default function DashboardClient({ 
+  initialDeviceStatus, 
+  initialSensorData,
+  isAdmin = false 
+}: { 
+  initialDeviceStatus: any, 
+  initialSensorData: any[],
+  isAdmin?: boolean 
+}) {
   const [deviceStatus, setDeviceStatus] = useState<any>(initialDeviceStatus);
   const [sensorData, setSensorData] = useState<any[]>(initialSensorData);
   const [pendingDevices, setPendingDevices] = useState<Record<string, boolean>>({});
@@ -150,55 +158,68 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
         {/* Quick Controls Card */}
         <div className="p-8 border rounded-2xl shadow-sm bg-white text-black transition-all hover:shadow-md">
           <h2 className="text-lg font-bold text-gray-700 mb-6 uppercase tracking-wider">Quick Controls</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            
-            <div className="flex flex-col gap-3">
-              <p className="text-gray-600 font-medium flex items-center justify-between gap-2">
-                <span>💡 หลอดไฟ (แสงสังเคราะห์)</span>
-                {isLedPending && <span className="text-xs text-yellow-600 animate-pulse font-bold">กำลังอัปเดต...</span>}
-              </p>
-              <div className="flex gap-3">
-                <button 
-                  disabled={isLedPending}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'ON' ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-100' : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600'} disabled:opacity-50`}
-                  onClick={() => toggleDevice('LED', 'ON')}
-                >
-                  เปิด
-                </button>
-                <button 
-                  disabled={isLedPending}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} disabled:opacity-50`}
-                  onClick={() => toggleDevice('LED', 'OFF')}
-                >
-                  ปิด
-                </button>
+          
+          {!isAdmin ? (
+            <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-center">
+              <span className="text-4xl mb-3">🔒</span>
+              <h3 className="text-gray-800 font-bold text-lg mb-1">Restricted Access</h3>
+              <p className="text-gray-500 mb-4">Please log in to control the device.</p>
+              <button 
+                onClick={() => router.push('/login')}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition"
+              >
+                Go to Login
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="flex flex-col gap-3">
+                <p className="text-gray-600 font-medium flex items-center justify-between gap-2">
+                  <span>💡 หลอดไฟ (แสงสังเคราะห์)</span>
+                  {isLedPending && <span className="text-xs text-yellow-600 animate-pulse font-bold">กำลังอัปเดต...</span>}
+                </p>
+                <div className="flex gap-3">
+                  <button 
+                    disabled={isLedPending}
+                    className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'ON' ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-100' : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600'} disabled:opacity-50`}
+                    onClick={() => toggleDevice('LED', 'ON')}
+                  >
+                    เปิด
+                  </button>
+                  <button 
+                    disabled={isLedPending}
+                    className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} disabled:opacity-50`}
+                    onClick={() => toggleDevice('LED', 'OFF')}
+                  >
+                    ปิด
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <p className="text-gray-600 font-medium flex items-center justify-between gap-2">
+                  <span>💧 ปั๊มน้ำ</span>
+                  {isPumpPending && <span className="text-xs text-blue-600 animate-pulse font-bold">กำลังอัปเดต...</span>}
+                </p>
+                <div className="flex gap-3">
+                  <button 
+                    disabled={isPumpPending}
+                    className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'ON' ? 'bg-blue-500 text-white ring-4 ring-blue-100' : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'} disabled:opacity-50`}
+                    onClick={() => toggleDevice('PUMP', 'ON')}
+                  >
+                    เปิดปั๊มน้ำ
+                  </button>
+                  <button 
+                    disabled={isPumpPending}
+                    className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} disabled:opacity-50`}
+                    onClick={() => toggleDevice('PUMP', 'OFF')}
+                  >
+                    ปิดปั๊มน้ำ
+                  </button>
+                </div>
               </div>
             </div>
-            
-            <div className="flex flex-col gap-3">
-              <p className="text-gray-600 font-medium flex items-center justify-between gap-2">
-                <span>💧 ปั๊มน้ำ</span>
-                {isPumpPending && <span className="text-xs text-blue-600 animate-pulse font-bold">กำลังอัปเดต...</span>}
-              </p>
-              <div className="flex gap-3">
-                <button 
-                  disabled={isPumpPending}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'ON' ? 'bg-blue-500 text-white ring-4 ring-blue-100' : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'} disabled:opacity-50`}
-                  onClick={() => toggleDevice('PUMP', 'ON')}
-                >
-                  เปิดปั๊มน้ำ
-                </button>
-                <button 
-                  disabled={isPumpPending}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} disabled:opacity-50`}
-                  onClick={() => toggleDevice('PUMP', 'OFF')}
-                >
-                  ปิดปั๊มน้ำ
-                </button>
-              </div>
-            </div>
-            
-          </div>
+          )}
         </div>
 
         {/* Real-time Data Table Card */}

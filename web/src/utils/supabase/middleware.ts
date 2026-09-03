@@ -41,11 +41,15 @@ export async function updateSession(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/auth')
   ) {
     // no user, potentially respond by redirecting the user to the login page
-    // but only if it's a protected route like /admin
+    // but only if it's a protected route like /admin or /api/chat
     if (request.nextUrl.pathname.startsWith('/admin')) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       return NextResponse.redirect(url);
+    }
+    
+    if (request.nextUrl.pathname.startsWith('/api/chat')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
 

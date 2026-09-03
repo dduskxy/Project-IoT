@@ -22,6 +22,10 @@ export default async function DashboardPage() {
     .order('timestamp', { ascending: false })
     .limit(50)
 
+  // Check if user is logged in
+  const { data: { user } } = await supabase.auth.getUser()
+  const isAdmin = !!user
+
   return (
     <main className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -37,9 +41,23 @@ export default async function DashboardPage() {
           <Link href="/admin" className="px-5 py-2 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
             Admin Panel
           </Link>
-          <Link href="/login" className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 rounded-full transition-colors">
-            Login
-          </Link>
+          {isAdmin ? (
+            <form action={async () => {
+              'use server';
+              const { cookies } = await import('next/headers');
+              const { createClient } = await import('@/utils/supabase/server');
+              const supabase = createClient(await cookies());
+              await supabase.auth.signOut();
+            }}>
+              <button className="px-5 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 shadow-md shadow-red-500/20 rounded-full transition-colors">
+                Logout
+              </button>
+            </form>
+          ) : (
+            <Link href="/login" className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 rounded-full transition-colors">
+              Login
+            </Link>
+          )}
         </div>
       </header>
 
@@ -47,7 +65,8 @@ export default async function DashboardPage() {
       <div className="p-8 max-w-7xl mx-auto">
         <DashboardClient 
           initialDeviceStatus={deviceStatus || null} 
-          initialSensorData={sensorData || []} 
+          initialSensorData={sensorData || []}
+          isAdmin={isAdmin} 
         />
       </div>
     </main>
