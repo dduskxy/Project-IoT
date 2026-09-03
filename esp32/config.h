@@ -14,7 +14,7 @@ extern const char* DEVICE_ID;
 
 // Hardware Pins
 #define LED_PIN 2
-#define LED_INVERTED true
+#define LED_INVERTED false
 #define PUMP_PIN 23
 #define MOISTURE_POWER_PIN 19
 #define MOISTURE_SIGNAL_PIN 33
