@@ -16,9 +16,9 @@ export async function POST(request: Request) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || !apiKey.startsWith('AIza')) {
+    if (!apiKey) {
       return NextResponse.json(
-        { error: 'เกิดข้อผิดพลาด: กุญแจ GEMINI_API_KEY ไม่ถูกต้อง (กุญแจของแท้ต้องขึ้นต้นด้วย AIza)' },
+        { error: 'เกิดข้อผิดพลาด: ไม่พบกุญแจ GEMINI_API_KEY ในระบบ' },
         { status: 500 }
       );
     }
