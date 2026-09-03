@@ -10,17 +10,20 @@ export default async function DashboardPage() {
   const supabase = createClient(cookieStore)
 
   // Fetch initial data for SSR
-  const { data: deviceStatus } = await supabase
+  const { data: deviceStatus, error: dsError } = await supabase
     .from('device_status')
     .select('*')
     .eq('device_id', 'esp32-device-01')
     .single()
 
-  const { data: sensorData } = await supabase
+  const { data: sensorData, error: ssError } = await supabase
     .from('sensor_data')
     .select('*')
     .order('timestamp', { ascending: false })
     .limit(50)
+
+  if (dsError) console.error("Device Status Error:", dsError)
+  if (ssError) console.error("Sensor Data Error:", ssError)
 
   // Check if user is logged in
   const { data: { user } } = await supabase.auth.getUser()
