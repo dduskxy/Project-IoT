@@ -23,22 +23,27 @@ export async function POST(request: Request) {
 
     const lowerMessage = message.toLowerCase();
 
-    // Mock NLP extraction
-    if (lowerMessage.includes('เปิดปั๊ม') || lowerMessage.includes('รดน้ำ') || lowerMessage.includes('turn on pump')) {
+    // Mock NLP extraction with Plant Persona
+    if (lowerMessage.includes('เปิดปั๊ม') || lowerMessage.includes('รดน้ำ') || lowerMessage.includes('หิวน้ำ')) {
       device = 'PUMP';
       command = 'ON';
-    } else if (lowerMessage.includes('ปิดปั๊ม') || lowerMessage.includes('turn off pump')) {
+    } else if (lowerMessage.includes('ปิดปั๊ม') || lowerMessage.includes('หยุดรดน้ำ') || lowerMessage.includes('อิ่มแล้ว')) {
       device = 'PUMP';
       command = 'OFF';
-    } else if (lowerMessage.includes('เปิดไฟ') || lowerMessage.includes('turn on led')) {
+    } else if (lowerMessage.includes('เปิดไฟ') || lowerMessage.includes('มืด') || lowerMessage.includes('ขอแสง')) {
       device = 'LED';
       command = 'ON';
-    } else if (lowerMessage.includes('ปิดไฟ') || lowerMessage.includes('turn off led')) {
+    } else if (lowerMessage.includes('ปิดไฟ') || lowerMessage.includes('จะนอน') || lowerMessage.includes('แสบตา')) {
       device = 'LED';
       command = 'OFF';
     } else {
+      const casualReplies = [
+        "หนูเป็นต้นไม้นะคะ ฟังไม่ทันเลย ลองสั่งรดน้ำ หรือเปิดไฟดูสิคะ 🥺",
+        "แงงง หนูไม่ค่อยเข้าใจค่ะ ลองบอกให้หนูกินน้ำ (เปิดปั๊ม) หรืออาบแดด (เปิดไฟ) ได้ไหมคะ 🪴",
+        "อากาศวันนี้ดีจังเลยค่ะ! แต่ถ้าพี่สั่งให้เปิดไฟหรือรดน้ำ หนูจะดีใจมากเลย 💚"
+      ];
       return NextResponse.json(
-        { reply: "ขออภัย ฉันไม่เข้าใจคำสั่งของคุณ กรุณาลองสั่งว่า 'เปิดปั๊ม', 'ปิดไฟ', 'รดน้ำ' ฯลฯ", success: false },
+        { reply: casualReplies[Math.floor(Math.random() * casualReplies.length)], success: false },
         { status: 200 }
       );
     }
@@ -65,20 +70,20 @@ export async function POST(request: Request) {
     if (error) {
       console.error('Error inserting command:', error);
       return NextResponse.json(
-        { error: 'Failed to save command to database' },
+        { error: 'หนูติดต่อฐานข้อมูลไม่ได้ค่ะ แงงง' },
         { status: 500 }
       );
     }
 
     // Determine the human-readable action for reply
-    let humanReadableAction = '';
-    if (device === 'PUMP' && command === 'ON') humanReadableAction = 'เปิดปั๊มน้ำ';
-    if (device === 'PUMP' && command === 'OFF') humanReadableAction = 'ปิดปั๊มน้ำ';
-    if (device === 'LED' && command === 'ON') humanReadableAction = 'เปิดไฟ';
-    if (device === 'LED' && command === 'OFF') humanReadableAction = 'ปิดไฟ';
+    let aiReply = '';
+    if (device === 'PUMP' && command === 'ON') aiReply = 'งั่มๆๆ สดชื่นจังเลยค่ะ ขอบคุณที่ให้น้ำหนูนะคะ! 💦🪴';
+    if (device === 'PUMP' && command === 'OFF') aiReply = 'อิ่มน้ำแล้วค่ะ! ปิดน้ำให้เรียบร้อยแล้วนะคะ 💚';
+    if (device === 'LED' && command === 'ON') aiReply = 'ว้าววว สว่างจังเลยค่ะ ชอบแสงไฟจัง! ✨';
+    if (device === 'LED' && command === 'OFF') aiReply = 'ราตรีสวัสดิ์นะคะ หนูจะนอนพักผ่อนแล้ว 🌙💤';
 
     return NextResponse.json({
-      reply: `รับทราบค่ะ สั่ง${humanReadableAction}ให้แล้วค่ะ!`,
+      reply: aiReply,
       command: data,
       success: true
     });
