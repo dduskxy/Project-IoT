@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabase';
 
+import Link from 'next/link';
+
 export default function Dashboard() {
   const [deviceStatus, setDeviceStatus] = useState<any>(null);
   const [sensorData, setSensorData] = useState<any[]>([]);
@@ -41,7 +43,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen p-8">
-      <h1 className="text-3xl font-bold mb-6">IoT Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">IoT Dashboard</h1>
+        <Link href="/login" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Admin Login</Link>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="p-6 border rounded-xl shadow-sm">

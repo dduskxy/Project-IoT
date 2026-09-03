@@ -82,12 +82,23 @@ export default function AdminTableEditor() {
             </h1>
             <p className="text-gray-400 mt-2">Professional Real-time Database Management (Thai Timezone GMT+7)</p>
           </div>
-          <button 
-            onClick={fetchData}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
-          >
-            รีเฟรชข้อมูล
-          </button>
+          <div className="flex gap-4">
+            <button 
+              onClick={fetchData}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
+            >
+              รีเฟรชข้อมูล
+            </button>
+            <button 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.href = '/login';
+              }}
+              className="px-4 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 rounded-lg transition"
+            >
+              ออกจากระบบ (Logout)
+            </button>
+          </div>
         </header>
 
         {/* Action Panel */}
