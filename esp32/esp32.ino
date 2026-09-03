@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <esp_task_wdt.h>
 #include "config.h"
 #include "wifi_manager.h"
 #include "supabase_client.h"
@@ -19,14 +18,7 @@ void setup() {
     delay(1000);
     Serial.println("Starting IoT Device...");
 
-    // Initialize WDT for ESP32 Arduino Core v3.0+ (ESP-IDF v5)
-    esp_task_wdt_config_t wdt_config = {
-        .timeout_ms = WDT_TIMEOUT * 1000,
-        .idle_core_mask = (1 << CONFIG_FREERTOS_NUMBER_OF_CORES) - 1,    // Bitmask of all cores
-        .trigger_panic = true
-    };
-    esp_task_wdt_init(&wdt_config);
-    esp_task_wdt_add(NULL);
+    // WDT is automatically handled by Arduino Core v3.0+ behind the scenes.
 
     // Initialize modules
     LED_Init();
@@ -39,7 +31,6 @@ void setup() {
 }
 
 void loop() {
-    esp_task_wdt_reset();
 
     // Ensure WiFi is connected
     WiFi_Maintain();
