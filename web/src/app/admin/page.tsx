@@ -83,6 +83,12 @@ export default function AdminTableEditor() {
             <p className="text-gray-400 mt-2">Professional Real-time Database Management (Thai Timezone GMT+7)</p>
           </div>
           <div className="flex gap-4">
+            <a 
+              href="/"
+              className="px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 rounded-lg transition font-bold"
+            >
+              ← กลับหน้าหลัก (Dashboard)
+            </a>
             <button 
               onClick={fetchData}
               className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
