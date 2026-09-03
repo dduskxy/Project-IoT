@@ -1,96 +1,55 @@
+import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
+import Link from 'next/link'
+import DashboardClient from './DashboardClient'
 
-'use client';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase';
+export const revalidate = 0 // Disable caching for real-time dashboard
 
-import Link from 'next/link';
+export default async function DashboardPage() {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
 
-export default function Dashboard() {
-  const [deviceStatus, setDeviceStatus] = useState<any>(null);
-  const [sensorData, setSensorData] = useState<any[]>([]);
-  const [llmCommand, setLlmCommand] = useState('');
+  // Fetch initial data for SSR
+  const { data: deviceStatus } = await supabase
+    .from('device_status')
+    .select('*')
+    .eq('device_id', 'esp32-device-01')
+    .single()
 
-  useEffect(() => {
-    fetchDeviceStatus();
-    fetchSensorData();
-  }, []);
-
-  const fetchDeviceStatus = async () => {
-    const { data, error } = await supabase.from('device_status').select('*').single();
-    if (!error) setDeviceStatus(data);
-  };
-
-  const fetchSensorData = async () => {
-    const { data, error } = await supabase.from('sensor_data').select('*').order('timestamp', { ascending: false }).limit(5);
-    if (!error) setSensorData(data);
-  };
-
-  const sendCommand = async (device: string, command: string, value: number = 0) => {
-    await supabase.from('commands').insert([{ device_id: 'esp32-device-01', device, command, value }]);
-    alert('Command sent');
-  };
-
-  const handleLlmSubmit = async () => {
-    // Dummy LLM interaction: in a real scenario, you'd send llmCommand to a backend route that queries the LLM
-    // Here we simulate it
-    alert('Simulating LLM sending command for: ' + llmCommand);
-    if (llmCommand.includes('เปิด')) {
-       await sendCommand('LED', 'ON');
-    } else if (llmCommand.includes('ปิด')) {
-       await sendCommand('LED', 'OFF');
-    }
-  };
+  const { data: sensorData } = await supabase
+    .from('sensor_data')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(50)
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">IoT Dashboard</h1>
-        <Link href="/login" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Admin Login</Link>
+    <main className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-emerald-700">
+            Smart Plant Pot
+          </h1>
+          <p className="text-sm text-gray-500 font-medium tracking-wide uppercase">กระถางต้นไม้อัจฉริยะ 🪴</p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <Link href="/admin" className="px-5 py-2 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+            Admin Panel
+          </Link>
+          <Link href="/login" className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 rounded-full transition-colors">
+            Login
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Dashboard Client UI */}
+      <div className="p-8 max-w-7xl mx-auto">
+        <DashboardClient 
+          initialDeviceStatus={deviceStatus || null} 
+          initialSensorData={sensorData || []} 
+        />
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Device Status</h2>
-          <p>Status: {deviceStatus?.online_status || 'Unknown'}</p>
-          <p>LED: {deviceStatus?.led_status || 'Unknown'}</p>
-          <p>Servo: {deviceStatus?.servo_position || 0}&deg;</p>
-          <p className="text-xs text-gray-500 mt-2">Last Update: {deviceStatus?.updated_at || 'Never'}</p>
-        </div>
-
-        <div className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Sensor Data</h2>
-          <ul>
-            {sensorData.map(s => (
-              <li key={s.id}>{s.sensor_type}: {s.value} {s.unit} ({new Date(s.timestamp).toLocaleTimeString()})</li>
-            ))}
-            {sensorData.length === 0 && <li>No recent data</li>}
-          </ul>
-        </div>
-
-        <div className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Controls</h2>
-          <div className="flex gap-4 mb-4">
-            <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onClick={() => sendCommand('LED', 'ON')}>LED ON</button>
-            <button className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" onClick={() => sendCommand('LED', 'OFF')}>LED OFF</button>
-          </div>
-          <div className="flex gap-4">
-            <button className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" onClick={() => sendCommand('SERVO', 'SET_POSITION', 0)}>Servo 0&deg;</button>
-            <button className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" onClick={() => sendCommand('SERVO', 'SET_POSITION', 90)}>Servo 90&deg;</button>
-          </div>
-        </div>
-
-        <div className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">LLM Control</h2>
-          <input 
-            type="text" 
-            className="border p-2 rounded w-full mb-4 text-black" 
-            placeholder="e.g. เปิดไฟ, ตั้ง Servo เป็น 90 องศา" 
-            value={llmCommand}
-            onChange={(e) => setLlmCommand(e.target.value)}
-          />
-          <button className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700" onClick={handleLlmSubmit}>Send to LLM</button>
-        </div>
-      </div>
-    </div>
-  );
+    </main>
+  )
 }
