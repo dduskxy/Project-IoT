@@ -1,12 +1,11 @@
-
 #include "config.h"
+#include "config_secrets.h"
 
-// Replace with actual credentials, or use a WiFiManager
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+// The following are defined in config_secrets.h:
+// const char* WIFI_SSID
+// const char* WIFI_PASSWORD
+// const char* SUPABASE_URL
+// const char* SUPABASE_KEY
 
-// Replace with actual Supabase details
-const char* SUPABASE_URL = "https://your-project.supabase.co";
-const char* SUPABASE_KEY = "your-anon-or-service-key";
-
+// Device Configuration
 const char* DEVICE_ID = "esp32-device-01";
