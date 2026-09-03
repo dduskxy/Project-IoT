@@ -1,4 +1,4 @@
-import { login, signup } from './actions'
+import { login } from './actions'
 
 export default async function LoginPage({
   searchParams,
@@ -53,19 +53,8 @@ export default async function LoginPage({
             >
               เข้าสู่ระบบ (Log in)
             </button>
-            
-            <button 
-              formAction={signup}
-              className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg font-medium transition"
-            >
-              สร้างบัญชี (Sign up)
-            </button>
           </div>
         </form>
-        
-        <p className="text-xs text-gray-500 text-center mt-4">
-          * สำหรับการเข้าใช้งานครั้งแรก ให้ใส่อีเมลและรหัสผ่านที่ต้องการ แล้วกด "สร้างบัญชี" ได้เลยครับ
-        </p>
       </div>
     </div>
   )
