@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(request: Request) {
   try {
@@ -14,84 +15,98 @@ export async function POST(request: Request) {
       );
     }
 
-    // AI Command Parsing Logic
-    // In a real scenario, this would call an LLM (e.g. OpenAI) to extract intent.
-    // For this prototype, we provide a keyword-based NLP mock implementation.
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'ระบบ AI ยังไม่พร้อมใช้งาน กรุณาตั้งค่า GEMINI_API_KEY ในไฟล์ .env.local' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Gemini AI
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `
+คุณคือ "ฟลอร่า (Flaura)" ต้นไม้ AI ที่มีชีวิต ร่าเริง น่ารัก ขี้อ้อน และรักเจ้าของมาก 
+คุณอาศัยอยู่ในกระถางอัจฉริยะ คุณสามารถคุยเรื่องทั่วไป เรื่องอากาศ หรือเรื่องความรู้สึกได้
+
+ผู้ใช้พูดกับคุณว่า: "${message}"
+
+ให้คุณตอบกลับผู้ใช้เป็นภาษาไทย สั้นๆ น่ารักๆ และใช้ Emoji ประกอบ
+แต่!! ถ้าผู้ใช้มีเจตนาสั่งให้คุณทำสิ่งต่อไปนี้ คุณ **ต้อง** แทรกรหัสคำสั่งลงไปในข้อความตอบกลับด้วย:
+- ถ้าผู้ใช้สั่งให้ "เปิดไฟ" (หรือบ่นว่ามืด อยากได้แสง) -> แทรกคำว่า [CMD:LED_ON]
+- ถ้าผู้ใช้สั่งให้ "ปิดไฟ" (หรือบ่นว่าสว่างไป จะนอนแล้ว) -> แทรกคำว่า [CMD:LED_OFF]
+- ถ้าผู้ใช้สั่งให้ "รดน้ำ" หรือ "เปิดปั๊ม" (หรือคุณหิวน้ำ) -> แทรกคำว่า [CMD:PUMP_ON]
+- ถ้าผู้ใช้สั่งให้ "หยุดรดน้ำ" หรือ "ปิดปั๊ม" -> แทรกคำว่า [CMD:PUMP_OFF]
+
+ห้ามอธิบายรหัสคำสั่งให้ผู้ใช้ฟัง ให้เนียนตอบแบบน่ารักๆ แล้วซ่อนรหัสนั้นไว้ตรงไหนก็ได้ของประโยค
+`;
+
+    const result = await model.generateContent(prompt);
+    const aiResponse = result.response.text();
+
     let device = '';
     let command = '';
-    let value: number | null = null;
+    let cleanReply = aiResponse;
 
-    const lowerMessage = message.toLowerCase();
-
-    // Mock NLP extraction with Plant Persona
-    if (lowerMessage.includes('เปิดปั๊ม') || lowerMessage.includes('รดน้ำ') || lowerMessage.includes('หิวน้ำ')) {
-      device = 'PUMP';
-      command = 'ON';
-    } else if (lowerMessage.includes('ปิดปั๊ม') || lowerMessage.includes('หยุดรดน้ำ') || lowerMessage.includes('อิ่มแล้ว')) {
-      device = 'PUMP';
-      command = 'OFF';
-    } else if (lowerMessage.includes('เปิดไฟ') || lowerMessage.includes('มืด') || lowerMessage.includes('ขอแสง')) {
-      device = 'LED';
-      command = 'ON';
-    } else if (lowerMessage.includes('ปิดไฟ') || lowerMessage.includes('จะนอน') || lowerMessage.includes('แสบตา')) {
-      device = 'LED';
-      command = 'OFF';
-    } else {
-      const casualReplies = [
-        "หนูเป็นต้นไม้นะคะ ฟังไม่ทันเลย ลองสั่งรดน้ำ หรือเปิดไฟดูสิคะ 🥺",
-        "แงงง หนูไม่ค่อยเข้าใจค่ะ ลองบอกให้หนูกินน้ำ (เปิดปั๊ม) หรืออาบแดด (เปิดไฟ) ได้ไหมคะ 🪴",
-        "อากาศวันนี้ดีจังเลยค่ะ! แต่ถ้าพี่สั่งให้เปิดไฟหรือรดน้ำ หนูจะดีใจมากเลย 💚"
-      ];
-      return NextResponse.json(
-        { reply: casualReplies[Math.floor(Math.random() * casualReplies.length)], success: false },
-        { status: 200 }
-      );
+    // Parse the hidden commands from Gemini's response
+    if (aiResponse.includes('[CMD:LED_ON]')) {
+      device = 'LED'; command = 'ON';
+      cleanReply = cleanReply.replace('[CMD:LED_ON]', '');
+    } else if (aiResponse.includes('[CMD:LED_OFF]')) {
+      device = 'LED'; command = 'OFF';
+      cleanReply = cleanReply.replace('[CMD:LED_OFF]', '');
+    } else if (aiResponse.includes('[CMD:PUMP_ON]')) {
+      device = 'PUMP'; command = 'ON';
+      cleanReply = cleanReply.replace('[CMD:PUMP_ON]', '');
+    } else if (aiResponse.includes('[CMD:PUMP_OFF]')) {
+      device = 'PUMP'; command = 'OFF';
+      cleanReply = cleanReply.replace('[CMD:PUMP_OFF]', '');
     }
 
     // Connect to Supabase
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
-    // Save the parsed command to the commands table
-    const { data, error } = await supabase
-      .from('commands')
-      .insert([
-        {
-          device_id: deviceId,
-          device: device,
-          command: command,
-          value: value,
-          status: 'PENDING'
-        }
-      ])
-      .select()
-      .single();
+    let commandData = null;
 
-    if (error) {
-      console.error('Error inserting command:', error);
-      return NextResponse.json(
-        { error: 'หนูติดต่อฐานข้อมูลไม่ได้ค่ะ แงงง' },
-        { status: 500 }
-      );
+    // If a hardware command was detected, insert it into Supabase
+    if (device && command) {
+      const { data, error } = await supabase
+        .from('commands')
+        .insert([
+          {
+            device_id: deviceId,
+            device: device,
+            command: command,
+            value: null,
+            status: 'PENDING'
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error inserting command:', error);
+        return NextResponse.json(
+          { error: 'หนูติดต่อระบบรดน้ำไม่ได้ค่ะ แงงง' },
+          { status: 500 }
+        );
+      }
+      commandData = data;
     }
 
-    // Determine the human-readable action for reply
-    let aiReply = '';
-    if (device === 'PUMP' && command === 'ON') aiReply = 'งั่มๆๆ สดชื่นจังเลยค่ะ ขอบคุณที่ให้น้ำหนูนะคะ! 💦🪴';
-    if (device === 'PUMP' && command === 'OFF') aiReply = 'อิ่มน้ำแล้วค่ะ! ปิดน้ำให้เรียบร้อยแล้วนะคะ 💚';
-    if (device === 'LED' && command === 'ON') aiReply = 'ว้าววว สว่างจังเลยค่ะ ชอบแสงไฟจัง! ✨';
-    if (device === 'LED' && command === 'OFF') aiReply = 'ราตรีสวัสดิ์นะคะ หนูจะนอนพักผ่อนแล้ว 🌙💤';
-
     return NextResponse.json({
-      reply: aiReply,
-      command: data,
+      reply: cleanReply.trim(),
+      command: commandData,
       success: true
     });
 
   } catch (err) {
     console.error('Error in chat API:', err);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'หนูคิดไม่ออกค่ะ (ระบบ AI ขัดข้อง)' },
       { status: 500 }
     );
   }
