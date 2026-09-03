@@ -5,16 +5,28 @@
 void WiFi_Init() {
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Connecting to WiFi");
-    while (WiFi.status() != WL_CONNECTED) {
+    int retries = 0;
+    while (WiFi.status() != WL_CONNECTED && retries < 40) { // 20 seconds timeout
         delay(500);
         Serial.print(".");
+        retries++;
     }
-    Serial.println(" Connected!");
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println(" Connected!");
+    } else {
+        Serial.println(" Failed to connect.");
+    }
 }
 
 void WiFi_Maintain() {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("WiFi connection lost. Reconnecting...");
-        WiFi_Init();
+        WiFi.disconnect();
+        WiFi.reconnect();
+        int retries = 0;
+        while (WiFi.status() != WL_CONNECTED && retries < 10) {
+            delay(500);
+            retries++;
+        }
     }
 }

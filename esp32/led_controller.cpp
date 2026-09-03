@@ -11,7 +11,11 @@ void LED_Init() {
 
 void LED_Set(bool on) {
     ledState = on;
+#ifdef LED_INVERTED
+    digitalWrite(LED_PIN, on ? (LED_INVERTED ? LOW : HIGH) : (LED_INVERTED ? HIGH : LOW));
+#else
     digitalWrite(LED_PIN, on ? HIGH : LOW);
+#endif
 }
 
 bool LED_GetStatus() {

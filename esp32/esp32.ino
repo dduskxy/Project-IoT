@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <esp_task_wdt.h>
 #include "config.h"
 #include "wifi_manager.h"
 #include "supabase_client.h"
@@ -8,6 +9,8 @@
 #include "command_handler.h"
 #include "device_status.h"
 
+#define WDT_TIMEOUT 30
+
 unsigned long lastSensorUpdate = 0;
 unsigned long lastCommandCheck = 0;
 
@@ -15,6 +18,10 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     Serial.println("Starting IoT Device...");
+
+    // Initialize WDT
+    esp_task_wdt_init(WDT_TIMEOUT, true);
+    esp_task_wdt_add(NULL);
 
     // Initialize modules
     LED_Init();
@@ -27,6 +34,8 @@ void setup() {
 }
 
 void loop() {
+    esp_task_wdt_reset();
+
     // Ensure WiFi is connected
     WiFi_Maintain();
     
