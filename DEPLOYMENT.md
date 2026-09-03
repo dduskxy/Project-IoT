@@ -1,47 +1,45 @@
-# คู่มือการนำโปรเจกต์ขึ้น Vercel (Deployment Guide)
+# คู่มือการนำเว็บขึ้น Vercel (Deployment Guide)
 
-คู่มือนี้จะสอนวิธีนำโปรเจกต์ Next.js ของคุณ (โฟลเดอร์ `web`) ไปฝากไว้บน GitHub และ Deploy ขึ้น Vercel แบบฟรีๆ พร้อมการตั้งค่าตัวแปร (Environment Variables) ให้ครบถ้วน
+เนื่องจากโปรเจกต์ของคุณอยู่บน GitHub แล้ว (`dduskxy/Project-IoT`) ขั้นตอนการเอาเว็บขึ้นออนไลน์บน Vercel จึงง่ายมากๆ ครับ ไม่ต้องสร้าง Repository ใหม่เลย!
 
-## ขั้นตอนที่ 1: นำโค้ดขึ้น GitHub
+## 🚀 ขั้นตอนที่ 1: นำเข้าโปรเจกต์ไปยัง Vercel
 
-1. สมัครสมาชิกและเข้าสู่ระบบ [GitHub](https://github.com/)
-2. สร้าง Repository ใหม่:
-   - กดปุ่ม **New** ตรงเมนู Repositories
-   - ตั้งชื่อ Repository (เช่น `iot-dashboard`)
-   - เลือกว่าจะเป็น Public (สาธารณะ) หรือ Private (ส่วนตัว)
-   - กดปุ่ม **Create repository**
-3. เปิด Terminal หรือ Command Prompt ในเครื่องของคุณ และเข้าไปที่โฟลเดอร์ `web`:
-   ```bash
-   cd C:\Users\asus\Project-IoT\web
-   ```
-4. รันคำสั่งต่อไปนี้ทีละบรรทัด (เปลี่ยน `<YOUR_GITHUB_USERNAME>` และ `<REPO_NAME>` เป็นของคุณ):
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git branch -M main
-   git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/<REPO_NAME>.git
-   git push -u origin main
-   ```
+1. เข้าเว็บ [Vercel.com](https://vercel.com/) และกด **Sign Up** หรือ **Log In** ด้วยบัญชี GitHub ของคุณ
+2. เมื่อเข้าสู่ระบบแล้ว ให้กดปุ่ม **"Add New..."** มุมขวาบน และเลือก **"Project"**
+3. ในหน้า *Import Git Repository* จะมีรายชื่อโปรเจกต์จาก GitHub ของคุณโผล่ขึ้นมา
+4. มองหาโปรเจกต์ **`Project-IoT`** แล้วกดปุ่ม **"Import"**
 
-## ขั้นตอนที่ 2: เชื่อมต่อ Vercel
+---
 
-1. เข้าเว็บไซต์ [Vercel](https://vercel.com/) และสมัครสมาชิกด้วยบัญชี GitHub ของคุณ
-2. เมื่อเข้าสู่ระบบเสร็จแล้ว ให้กดปุ่ม **Add New...** -> **Project**
-3. Vercel จะแสดงรายการ Repositories ใน GitHub ของคุณ ให้กดปุ่ม **Import** ที่ Repository ที่เพิ่งสร้างไว้
-4. ในหน้าจอ Configure Project:
-   - **Framework Preset**: Vercel จะตรวจสอบอัตโนมัติว่าเป็น `Next.js`
-   - **Root Directory**: ให้เป็น `./` (หรือเลือกโฟลเดอร์ `web` หากคุณเอาโค้ดทั้ง `Project-IoT` ขึ้น GitHub)
-5. **การตั้งค่า Environment Variables (สำคัญมาก)**:
-   คุณต้องคัดลอกค่าจากไฟล์ `.env.local` ไปใส่ใน Vercel
-   - เปิดโฟลเดอร์โปรเจกต์ `web` แล้วเปิดไฟล์ `.env.local`
-   - นำตัวแปรเหล่านี้ไปเพิ่มในหัวข้อ **Environment Variables** ใน Vercel:
-     - ชื่อตัวแปร: `NEXT_PUBLIC_SUPABASE_URL` | ค่าตัวแปร: `https://bwoelvninosbpalqlymm.supabase.co`
-     - ชื่อตัวแปร: `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ค่าตัวแปร: `sb_publishable_UacTEmeC6HJFcqdPqjicaQ__7sA4Qh9`
-   - กดปุ่ม **Add** ทีละตัว
-6. กดปุ่ม **Deploy**
-7. รอสักครู่ Vercel จะทำการ Build โค้ดของคุณ เมื่อเสร็จสิ้น คุณจะได้รับ URL สำหรับเข้าชมเว็บไซต์ของคุณได้ทันที!
+## ⚙️ ขั้นตอนที่ 2: ตั้งค่า Root Directory (สำคัญมาก!)
 
-## คำแนะนำเพิ่มเติม
-- หากมีการแก้ไขโค้ดและต้องการอัปเดตเว็บไซต์ เพียงแค่รัน `git add .`, `git commit -m "อัปเดตงาน"`, และ `git push` โค้ดจะถูกดึงไปอัปเดตบน Vercel อัตโนมัติ
-- อย่าเผลอนำไฟล์ `.env.local` ขึ้น GitHub เพราะอาจทำให้ข้อมูล Key สำคัญหลุด (ใน `.gitignore` มีการตั้งค่าป้องกันไว้แล้ว)
+เนื่องจากโค้ดเว็บของเราไม่ได้อยู่ข้างนอกสุด แต่อยู่ในโฟลเดอร์ชื่อ `web` เราต้องบอกให้ Vercel รู้ครับ:
+1. ในหัวข้อ **Root Directory** ให้กดปุ่ม **Edit**
+2. เลือกโฟลเดอร์ **`web`** แล้วกด **Continue** 
+*(ถ้าเลือกถูก Framework Preset จะเปลี่ยนเป็น Next.js อัตโนมัติ)*
+
+---
+
+## 🔑 ขั้นตอนที่ 3: ใส่รหัสลับ (Environment Variables)
+
+ระบบต้องใช้กุญแจสำหรับเชื่อมต่อฐานข้อมูล ให้คุณเปิดไฟล์ `.env.local` ในเครื่องคุณเพื่อดูรหัส แล้วเอาไปกรอกใน Vercel ดังนี้:
+
+1. เลื่อนลงมาที่หัวข้อ **Environment Variables** (กดขยายลูกศรลงมา)
+2. ก๊อปปี้ค่าไปใส่ทีละช่อง:
+   - **Name:** `NEXT_PUBLIC_SUPABASE_URL` 
+   - **Value:** `(ใส่ URL จากไฟล์ .env.local ของคุณ)`
+   - กดปุ่ม **Add**
+3. ทำซ้ำอีกครั้ง:
+   - **Name:** `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - **Value:** `(ใส่ Key จากไฟล์ .env.local ของคุณ)`
+   - กดปุ่ม **Add**
+
+---
+
+## 🎉 ขั้นตอนที่ 4: กด Deploy!
+
+1. เมื่อตรวจดูว่าใส่ข้อมูลครบแล้ว กดปุ่ม **Deploy** สีฟ้าใหญ่ๆ ได้เลย!
+2. รอประมาณ 1-2 นาที ระบบจะทำการ Build โค้ดทั้งหมดของคุณ
+3. เมื่อเสร็จแล้ว จะมีพลุจุดฉลอง 🎆 ขึ้นมา พร้อมกับให้ลิงก์เว็บจริงของคุณ (เช่น `https://project-iot.vercel.app`)
+
+เท่านี้เว็บของคุณก็ออนไลน์ 100% และระบบรักษาความปลอดภัยพร้อมทำงานแล้วครับ!
