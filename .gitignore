@@ -1,0 +1,26 @@
+# Project-IoT root .gitignore
+
+# === Secrets & Credentials ===
+esp32/config_secrets.h
+web/.env.local
+web/.env*.local
+web/temp_sql.js
+
+# === Build artifacts ===
+web/node_modules/
+web/.next/
+web/out/
+web/build/
+web/*.tsbuildinfo
+web/next-env.d.ts
+
+# === IDE / OS ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === Agents (optional) ===
+.agents/
