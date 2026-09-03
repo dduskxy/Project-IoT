@@ -8,34 +8,44 @@ import ChatUI from '@/components/ChatUI';
 export default function DashboardClient({ initialDeviceStatus, initialSensorData }: { initialDeviceStatus: any, initialSensorData: any[] }) {
   const [deviceStatus, setDeviceStatus] = useState<any>(initialDeviceStatus);
   const [sensorData, setSensorData] = useState<any[]>(initialSensorData);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingDevices, setPendingDevices] = useState<Record<string, boolean>>({});
+  const [isConnected, setIsConnected] = useState(false);
   const router = useRouter();
   
-  const supabase = createClient();
+  // Use state to ensure supabase client is only created once per component lifecycle
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
+    // Consolidate subscriptions into a single channel for better resource management
     const channel = supabase
-      .channel('device_status_changes')
+      .channel('iot_dashboard_realtime')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'device_status', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
-        setDeviceStatus(payload.new);
+        setDeviceStatus((prev: any) => ({ ...prev, ...payload.new }));
       })
-      .subscribe();
-
-    const sensorChannel = supabase
-      .channel('sensor_data_changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
-        setSensorData(prev => [payload.new, ...prev]);
+        setSensorData(prev => [payload.new, ...prev].slice(0, 50)); // Keep only latest 50 records
       })
-      .subscribe();
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commands', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
+        if (payload.new.status === 'PENDING') {
+          setPendingDevices(prev => ({ ...prev, [payload.new.device]: true }));
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commands', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
+        if (payload.new.status !== 'PENDING') {
+          setPendingDevices(prev => ({ ...prev, [payload.new.device]: false }));
+        }
+      })
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
 
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(sensorChannel);
     };
   }, [supabase]);
 
   const toggleDevice = async (device: 'LED' | 'PUMP', newStatus: 'ON' | 'OFF') => {
-    setIsUpdating(true);
+    setPendingDevices(prev => ({ ...prev, [device]: true }));
     const { error } = await supabase
       .from('commands')
       .insert({
@@ -47,8 +57,8 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
       
     if (error) {
       alert(`Error sending ${device} command: ` + error.message);
+      setPendingDevices(prev => ({ ...prev, [device]: false }));
     }
-    setIsUpdating(false);
   };
 
   // Derive feeling from latest sensor data
@@ -72,6 +82,9 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
     }
   }
 
+  const isLedPending = pendingDevices['LED'];
+  const isPumpPending = pendingDevices['PUMP'];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
       {/* Left Column: Status & Controls */}
@@ -80,6 +93,12 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Plant Feeling Card */}
           <div className="p-8 border rounded-2xl shadow-sm bg-white text-black flex flex-col items-center justify-center text-center transition-all hover:shadow-md">
+            <div className="w-full flex justify-end mb-2">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                {isConnected ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
             <h2 className="text-lg font-bold text-gray-700 mb-4 uppercase tracking-wider">อารมณ์ของต้นไม้ 🪴</h2>
             <div className={`text-xl font-bold py-4 px-6 rounded-2xl ring-1 ${feelingColor}`}>
               {plantFeeling}
@@ -134,20 +153,21 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
             
             <div className="flex flex-col gap-3">
-              <p className="text-gray-600 font-medium flex items-center gap-2">
-                💡 หลอดไฟ (แสงสังเคราะห์)
+              <p className="text-gray-600 font-medium flex items-center justify-between gap-2">
+                <span>💡 หลอดไฟ (แสงสังเคราะห์)</span>
+                {isLedPending && <span className="text-xs text-yellow-600 animate-pulse font-bold">กำลังอัปเดต...</span>}
               </p>
               <div className="flex gap-3">
                 <button 
-                  disabled={isUpdating}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'ON' ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-100' : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600'}`}
+                  disabled={isLedPending}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'ON' ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-100' : 'bg-gray-100 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600'} disabled:opacity-50`}
                   onClick={() => toggleDevice('LED', 'ON')}
                 >
                   เปิด
                 </button>
                 <button 
-                  disabled={isUpdating}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  disabled={isLedPending}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.led_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} disabled:opacity-50`}
                   onClick={() => toggleDevice('LED', 'OFF')}
                 >
                   ปิด
@@ -156,20 +176,21 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
             </div>
             
             <div className="flex flex-col gap-3">
-              <p className="text-gray-600 font-medium flex items-center gap-2">
-                💧 ปั๊มน้ำ
+              <p className="text-gray-600 font-medium flex items-center justify-between gap-2">
+                <span>💧 ปั๊มน้ำ</span>
+                {isPumpPending && <span className="text-xs text-blue-600 animate-pulse font-bold">กำลังอัปเดต...</span>}
               </p>
               <div className="flex gap-3">
                 <button 
-                  disabled={isUpdating}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'ON' ? 'bg-blue-500 text-white ring-4 ring-blue-100' : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'}`}
+                  disabled={isPumpPending}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'ON' ? 'bg-blue-500 text-white ring-4 ring-blue-100' : 'bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-600'} disabled:opacity-50`}
                   onClick={() => toggleDevice('PUMP', 'ON')}
                 >
                   เปิดปั๊มน้ำ
                 </button>
                 <button 
-                  disabled={isUpdating}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  disabled={isPumpPending}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-sm ${deviceStatus?.pump_status === 'OFF' ? 'bg-gray-800 text-white ring-4 ring-gray-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} disabled:opacity-50`}
                   onClick={() => toggleDevice('PUMP', 'OFF')}
                 >
                   ปิดปั๊มน้ำ
@@ -185,8 +206,8 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
           <h2 className="text-lg font-bold text-gray-700 mb-6 uppercase tracking-wider flex items-center justify-between">
             <span>📡 Real-time Sensor Log</span>
             <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              {isConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
             </span>
           </h2>
           <div className="overflow-x-auto">
@@ -230,4 +251,5 @@ export default function DashboardClient({ initialDeviceStatus, initialSensorData
     </div>
   );
 }
+
 
