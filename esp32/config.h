@@ -1,22 +1,24 @@
-
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// WiFi Configuration
+// WiFi Configuration (from config_secrets.h)
 extern const char* WIFI_SSID;
 extern const char* WIFI_PASSWORD;
 
-// Supabase Configuration
+// Supabase Configuration (from config_secrets.h)
 extern const char* SUPABASE_URL;
 extern const char* SUPABASE_KEY;
 
-// Device Configuration
+// Device Configuration (from config.cpp)
 extern const char* DEVICE_ID;
 
-// Hardware Pins (Assumed generic for now, replace with actual pins)
+// Hardware Pins
 #define LED_PIN 2
-#define SERVO_PIN 18
-#define SENSOR_PIN 34 // Example Analog pin
+#define PUMP_PIN 23
+#define MOISTURE_POWER_PIN 19
+#define MOISTURE_SIGNAL_PIN 33
+#define BATTERY_PIN 32
+#define WATER_LEVEL_GROUND_PIN 35
 
 // Timings
 #define SENSOR_UPDATE_INTERVAL 10000 // 10 seconds
