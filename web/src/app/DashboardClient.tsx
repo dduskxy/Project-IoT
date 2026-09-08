@@ -31,17 +31,20 @@ export default function DashboardClient({
     const channel = supabase
       .channel('iot_dashboard_realtime')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'device_status', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
+        console.log('Realtime device_status UPDATE:', payload);
         setDeviceStatus((prev: any) => ({ ...prev, ...payload.new }));
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
         setSensorData(prev => [payload.new, ...prev].slice(0, 100)); // Keep latest 100
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commands', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
+        console.log('Realtime commands INSERT:', payload);
         if (payload.new.status === 'PENDING') {
           setPendingDevices(prev => ({ ...prev, [payload.new.device]: true }));
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commands', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
+        console.log('Realtime commands UPDATE:', payload);
         if (payload.new.status !== 'PENDING') {
           setPendingDevices(prev => ({ ...prev, [payload.new.device]: false }));
         }

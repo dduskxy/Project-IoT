@@ -32,41 +32,104 @@ export async function POST(request: Request) {
       properties: {
         reply: {
           type: SchemaType.STRING,
-          description: "คำตอบของฟลอร่า ตอบกลับผู้ใช้เป็นภาษาไทย สั้นๆ น่ารักๆ ขี้อ้อน และใช้ Emoji ประกอบ",
+          description: "คำตอบของระบบ ตอบกลับผู้ใช้เป็นภาษาไทยอย่างเป็นทางการ กระชับ เป็นระบบ และไม่มีอารมณ์ความรู้สึกเข้ามาเกี่ยวข้อง",
         },
         device: {
           type: SchemaType.STRING,
-          description: "ถ้าผู้ใช้ต้องการสั่งงานฮาร์ดแวร์ ให้ระบุอุปกรณ์ ('LED' สำหรับไฟ, 'PUMP' สำหรับรดน้ำ) ถ้าผู้ใช้แค่ชวนคุยให้ปล่อยเป็นสตริงว่าง ''",
+          description: "ถ้าผู้ใช้ต้องการสั่งงานฮาร์ดแวร์ ให้ระบุอุปกรณ์ ('LED' สำหรับไฟ, 'PUMP' สำหรับปั๊มน้ำ) ถ้าเป็นการสอบถามข้อมูลทั่วไปให้ปล่อยเป็นสตริงว่าง ''",
         },
         command: {
           type: SchemaType.STRING,
-          description: "คำสั่งที่ต้องการส่ง ('ON' เพื่อเปิด, 'OFF' เพื่อปิด) ถ้าผู้ใช้แค่ชวนคุยให้ปล่อยเป็นสตริงว่าง ''",
+          description: "คำสั่งที่ต้องการส่ง ('ON' เพื่อเปิด, 'OFF' เพื่อปิด) ถ้าเป็นการสอบถามข้อมูลทั่วไปให้ปล่อยเป็นสตริงว่าง ''",
         }
       },
       required: ["reply", "device", "command"],
     };
 
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-3.7-flash', 
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema as any,
-      }
-    });
-
     const prompt = `
-คุณคือ "ฟลอร่า (Flaura)" ต้นไม้ AI ที่มีชีวิต ร่าเริง น่ารัก ขี้อ้อน และรักเจ้าของมาก 
-คุณอาศัยอยู่ในกระถางอัจฉริยะ คุณสามารถคุยเรื่องทั่วไป หรือเรื่องความรู้สึกได้
+คุณคือระบบ AI ประจำกระถางต้นไม้อัจฉริยะ (Smart Plant Pot System)
+หน้าที่ของคุณคือรับคำสั่ง จัดการฮาร์ดแวร์ และรายงานสถานะของระบบ
+รูปแบบการสื่อสารของคุณคือ แชทบอทที่เป็นทางการ เป็นระบบ กระชับ ตรงไปตรงมา ไม่มีอารมณ์ความรู้สึก และไม่ต้องสมมติบทบาทเป็นบุคคลใดๆ
 
-ผู้ใช้พูดกับคุณว่า: "${message}"
+ผู้ใช้ป้อนคำสั่งหรือข้อความว่า: "${message}"
 
-ถ้าผู้ใช้สั่ง "เปิดไฟ", "รดน้ำ", "ปิดไฟ", หรือ "หิวน้ำ" ให้คุณระบุ device และ command ให้ถูกต้อง
-ถ้าผู้ใช้แค่ชวนคุยเล่น ให้ device และ command เป็นสตริงว่าง ("")
-ส่วน reply ให้ตอบกลับด้วยความน่ารักเสมอ
+Please respond in JSON format. ให้คุณตอบกลับมาในรูปแบบ JSON (Object) เท่านั้น โดยมีโครงสร้างดังนี้:
+{
+  "reply": "คำตอบภาษาไทยที่เป็นทางการแบบระบบแชทบอท กระชับ ตรงไปตรงมา ไม่ใส่อารมณ์ และไม่มี Emoji",
+  "device": "ถ้าผู้ใช้สั่งงานฮาร์ดแวร์ให้ใส่ 'LED' หรือ 'PUMP' ถ้าแค่สอบถามทั่วไปให้ใส่สตริงว่าง ''",
+  "command": "คำสั่งฮาร์ดแวร์ 'ON' หรือ 'OFF' ถ้าแค่สอบถามทั่วไปให้ใส่สตริงว่าง ''"
+}
 `;
 
-    const result = await model.generateContent(prompt);
-    const aiResponse = result.response.text();
+    let aiResponse = "";
+    let lastError = null;
+    const groqKey = process.env.GROQ_API_KEY;
+
+    if (groqKey) {
+      try {
+        console.log("Using Groq (Llama 3 / Qwen)...");
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${groqKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "llama3-8b-8192", 
+            messages: [{ role: "system", content: prompt }],
+            response_format: { type: "json_object" },
+            temperature: 0.7
+          })
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Groq API Error: ${res.status} ${errText}`);
+        }
+        const groqData = await res.json();
+        aiResponse = groqData.choices[0].message.content;
+        console.log("Groq Success!");
+      } catch (err: any) {
+        console.warn("Groq failed, falling back to Gemini...", err.message);
+        lastError = err;
+      }
+    }
+
+    // Automatic Hub: Fallback to Gemini if Groq is not configured or fails
+    if (!aiResponse) {
+      const modelsToTry = [
+        'gemini-3.7-flash', 
+        'gemini-flash-latest', 
+        'gemini-3.5-flash', 
+        'gemini-3.6-flash',
+        'gemini-1.5-flash'
+      ];
+
+      for (const modelName of modelsToTry) {
+        try {
+          const model = genAI.getGenerativeModel({ 
+            model: modelName, 
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: responseSchema as any,
+            }
+          });
+          
+          console.log(`Trying Gemini model: ${modelName}...`);
+          const result = await model.generateContent(prompt);
+          aiResponse = result.response.text();
+          console.log(`Success with Gemini model: ${modelName}`);
+          break;
+        } catch (err: any) {
+          console.warn(`Gemini Model ${modelName} failed:`, err.message);
+          lastError = err;
+        }
+      }
+    }
+
+    if (!aiResponse) {
+      throw new Error(`All AI Models are currently busy. Last error: ${lastError?.message}`);
+    }
     
     // Parse the strict JSON output
     let parsedResult;
@@ -104,7 +167,7 @@ export async function POST(request: Request) {
       if (error) {
         console.error('Error inserting command:', error);
         return NextResponse.json(
-          { error: 'หนูติดต่อระบบรดน้ำไม่ได้ค่ะ แงงง (เกิดปัญหาการส่งคำสั่งไปฮาร์ดแวร์)' },
+          { error: 'เกิดปัญหาขัดข้องในการสื่อสารกับฮาร์ดแวร์ ไม่สามารถส่งคำสั่งได้ในขณะนี้' },
           { status: 500 }
         );
       }
@@ -120,7 +183,7 @@ export async function POST(request: Request) {
   } catch (err: any) {
     console.error('Error in chat API:', err);
     return NextResponse.json(
-      { error: err.message || 'หนูคิดไม่ออกค่ะ (ระบบ AI ขัดข้อง)' },
+      { error: err.message || 'ระบบ AI ขัดข้อง ไม่สามารถประมวลผลคำสั่งได้ในขณะนี้' },
       { status: 500 }
     );
   }

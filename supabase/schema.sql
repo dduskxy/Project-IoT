@@ -66,3 +66,8 @@ CREATE TRIGGER trigger_update_device_status_timestamp
 BEFORE UPDATE ON device_status
 FOR EACH ROW
 EXECUTE FUNCTION update_device_status_timestamp();
+
+-- Enable Realtime for tables
+alter publication supabase_realtime add table sensor_data;
+alter publication supabase_realtime add table device_status;
+alter publication supabase_realtime add table commands;
