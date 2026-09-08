@@ -197,20 +197,6 @@ export default function ChatUI() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
-      try {
-        recognitionRef.current?.start();
-        setIsListening(true);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
-
   // Dedicated function to handle submission directly from voice
   const handleVoiceSubmit = async (voiceText: string) => {
     if (!voiceText.trim()) return;

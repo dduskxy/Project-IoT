@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       audioStream.on('error', (err) => reject(err));
     });
 
-    return new NextResponse(audioBuffer, {
+    return new NextResponse(new Uint8Array(audioBuffer), {
       headers: {
         'Content-Type': 'audio/mpeg',
         'Cache-Control': 'public, max-age=3600'
