@@ -275,7 +275,7 @@ export default function DashboardClient({
             <div className="relative z-10 mt-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
               <div className="flex items-center gap-2 text-sm font-semibold text-white/90 bg-black/20 px-4 py-2 rounded-full w-fit backdrop-blur-sm">
                 <Clock className="w-4 h-4 opacity-70" />
-                <span>Sync: {deviceStatus?.updated_at ? format(new Date(deviceStatus.updated_at), 'HH:mm:ss') : 'N/A'}</span>
+                <span>Sync: {latestData?.created_at ? format(new Date(latestData.created_at), 'HH:mm:ss') : 'N/A'}</span>
               </div>
             </div>
           </div>
