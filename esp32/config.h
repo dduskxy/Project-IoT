@@ -20,7 +20,7 @@ extern const char* DEVICE_ID;
 #define RGB_DAT_PIN 27
 
 // Timings
-#define SENSOR_UPDATE_INTERVAL 5000 // 5 seconds
-#define COMMAND_CHECK_INTERVAL 3000 // 3 seconds
+#define SENSOR_UPDATE_INTERVAL 2000 // 2 seconds
+#define COMMAND_CHECK_INTERVAL 1500 // 1.5 seconds
 
 #endif // CONFIG_H

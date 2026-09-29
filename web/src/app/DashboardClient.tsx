@@ -458,7 +458,7 @@ export default function DashboardClient({
                     strokeWidth={4}
                     fillOpacity={1} 
                     fill="url(#colorTemp)" 
-                    animationDuration={1500}
+                    animationDuration={500}
                   />
                   <Area 
                     yAxisId="right"
@@ -468,7 +468,7 @@ export default function DashboardClient({
                     strokeWidth={4}
                     fillOpacity={1} 
                     fill="url(#colorLight)" 
-                    animationDuration={1500}
+                    animationDuration={500}
                   />
                 </AreaChart>
               </ResponsiveContainer>
