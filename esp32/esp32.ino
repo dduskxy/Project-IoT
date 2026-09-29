@@ -33,8 +33,29 @@ void setup() {
     Buzzer_Init();
     RGB_Init();
     
-    // Set to BLUE initially to indicate starting up / monitoring
-    RGB_SetColor(0, 0, 255);
+    // --- DIAGNOSTIC COLOR TEST ---
+    Serial.println("TESTING COLORS...");
+    
+    Serial.println("Testing RED");
+    RGB_SetColor(255, 0, 0); // RED
+    delay(1500);
+    
+    Serial.println("Testing GREEN");
+    RGB_SetColor(0, 255, 0); // GREEN
+    delay(1500);
+    
+    Serial.println("Testing BLUE");
+    RGB_SetColor(0, 0, 255); // BLUE
+    delay(1500);
+    
+    Serial.println("Testing WHITE");
+    RGB_SetColor(255, 255, 255); // WHITE
+    delay(1500);
+    
+    Serial.println("Testing OFF");
+    RGB_Off(); // OFF
+    delay(1500);
+    // ----------------------------
     
     WiFi_Init();
 }
@@ -51,7 +72,7 @@ void loop() {
         float temp = Temperature_Read();
         float light = Light_Read();
         
-        Serial.printf("Temp: %.1fC, Light: %.1f%%, Buzzer: %s, RGB: %s (%s)\n", temp, light, currentBuzzerStatus.c_str(), currentRgbStatus.c_str(), currentRgbColor.c_str());
+        Serial.printf("[V2] Temp: %.1fC, Light: %.1f%%, Buzzer: %s, RGB: %s (%s)\n", temp, light, currentBuzzerStatus.c_str(), currentRgbStatus.c_str(), currentRgbColor.c_str());
         
         // Push to Supabase
         Supabase_SendSleepData(temp, light);

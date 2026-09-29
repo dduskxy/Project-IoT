@@ -78,8 +78,9 @@ export default function DashboardClient({
       
     if (error) {
       alert(`Error sending RGB command: ` + error.message);
-      setIsRgbPending(false);
     }
+    
+    setIsRgbPending(false);
   };
 
   // Derive sleep data from latest sensor data
@@ -91,48 +92,69 @@ export default function DashboardClient({
   let scoreStatus = "🤔 กำลังประมวลผล...";
   let feelingStyle = "from-gray-500 to-gray-700 shadow-gray-500/20";
   let feelingIcon = <Activity className="w-8 h-8 text-white opacity-80" />;
+  let tempFeedback = "";
+  let lightFeedback = "";
   
   if (latestData) {
-    // Prototype sleep score calculation without accelerometer
+    // Medical Standard Evaluation for Sleep
+    // 1. Temperature: National Sleep Foundation recommends 15.6 - 19.4°C, but for tropical climates 20-24°C is widely accepted as optimal.
     let tempScore = 100;
-    if (temp < 20 || temp > 28) tempScore -= 30; // Ideal temp around 24
-    else if (temp < 22 || temp > 26) tempScore -= 10;
-    
-    let lightScore = 100;
-    if (light > 50) lightScore -= 50; // Too bright
-    else if (light > 20) lightScore -= 20;
-    
-    let buzzerScore = 100;
-    if (deviceStatus?.buzzer_status === 'ON') buzzerScore -= 50; // Buzzer is annoying
-    
-    sleepScore = Math.round((tempScore + lightScore + buzzerScore) / 3);
-    
-    if (sleepScore >= 80) {
-      scoreStatus = "😊 สภาพแวดล้อมดีเยี่ยม (Good)";
-      feelingStyle = "from-indigo-400 to-purple-600 shadow-indigo-500/30";
-      feelingIcon = <Zap className="w-8 h-8 text-white opacity-80" />;
-    } else if (sleepScore >= 60) {
-      scoreStatus = "😐 สภาพแวดล้อมปานกลาง (Moderate)";
-      feelingStyle = "from-orange-400 to-yellow-600 shadow-orange-500/30";
-      feelingIcon = <Activity className="w-8 h-8 text-white opacity-80" />;
+    if (temp >= 20 && temp <= 24) {
+      tempScore = 100;
+      tempFeedback = "อุณหภูมิอยู่ในเกณฑ์ดีเยี่ยมตามมาตรฐานการแพทย์";
+    } else if (temp >= 25 && temp <= 27) {
+      tempScore = 70;
+      tempFeedback = "อุณหภูมิค่อนข้างอุ่น อาจทำให้หลับไม่สนิท";
+    } else if (temp < 20) {
+      tempScore = 60;
+      tempFeedback = "อุณหภูมิเย็นเกินไป อาจทำให้ตื่นกลางดึก";
     } else {
-      scoreStatus = "😫 ควรปรับสภาพแวดล้อม (Poor)";
-      feelingStyle = "from-red-500 to-rose-600 shadow-red-500/30";
-      feelingIcon = <ShieldAlert className="w-8 h-8 text-white opacity-80" />;
+      tempScore = 30;
+      tempFeedback = "อุณหภูมิร้อนเกินไป ไม่เหมาะกับการนอนหลับ";
     }
     
-    // Alerts
-    if (temp > 28) console.warn("อุณหภูมิห้องสูงกว่าค่าที่กำหนด");
-    if (light > 50) console.warn("มีแสงรบกวนในช่วงเวลานอน");
+    // 2. Light: Complete darkness (<5 lux or very low percentage) is required for Melatonin production.
+    let lightScore = 100;
+    if (light <= 10) {
+      lightScore = 100;
+      lightFeedback = "ความมืดเหมาะสมต่อการหลั่งฮอร์โมนเมลาโทนิน";
+    } else if (light <= 30) {
+      lightScore = 60;
+      lightFeedback = "มีแสงสว่างรบกวนเล็กน้อย ควรหรี่ไฟลง";
+    } else {
+      lightScore = 20;
+      lightFeedback = "สว่างเกินไป สมองจะไม่เข้าสู่ภาวะหลับลึก";
+    }
+    
+    let buzzerScore = 100;
+    if (deviceStatus?.buzzer_status === 'ON') buzzerScore = 0;
+    
+    sleepScore = Math.round((tempScore * 0.5) + (lightScore * 0.5));
+    if (buzzerScore === 0) sleepScore = 0; // Alarm forces score to 0
+    
+    if (sleepScore >= 85) {
+      scoreStatus = "😊 ดีเยี่ยม (ตามมาตรฐานการแพทย์)";
+      feelingStyle = "from-emerald-400 to-teal-600 shadow-emerald-500/30";
+      feelingIcon = <Zap className="w-8 h-8 text-white opacity-80" />;
+    } else if (sleepScore >= 60) {
+      scoreStatus = "😐 ปานกลาง (อาจรบกวนการนอน)";
+      feelingStyle = "from-amber-400 to-orange-500 shadow-orange-500/30";
+      feelingIcon = <Activity className="w-8 h-8 text-white opacity-80" />;
+    } else {
+      scoreStatus = "😫 แย่ (ไม่เหมาะกับการนอนหลับ)";
+      feelingStyle = "from-rose-500 to-red-600 shadow-red-500/30";
+      feelingIcon = <ShieldAlert className="w-8 h-8 text-white opacity-80" />;
+    }
   }
 
-  // Prepare Chart Data (Temperature)
+  // Prepare Chart Data (Temperature & Light)
   const chartData = sensorData
     ?.slice(0, 20)
     .reverse()
     .map(d => ({
       time: format(new Date(d.created_at), 'HH:mm:ss'),
-      temperature: d.temperature
+      temperature: d.temperature,
+      light: d.light
     })) || [];
 
   return (
@@ -194,9 +216,20 @@ export default function DashboardClient({
             
             <div className="relative z-10 flex justify-between items-start">
               <div>
-                <p className="text-white/80 font-bold text-xs mb-2 uppercase tracking-widest">Sleep Environment Score</p>
+                <p className="text-white/80 font-bold text-xs mb-2 uppercase tracking-widest">Sleep Environment Score (Medical Std.)</p>
                 <h2 className="text-3xl sm:text-4xl font-black leading-tight">{sleepScore} / 100</h2>
-                <h3 className="text-xl font-bold mt-2">{scoreStatus}</h3>
+                <h3 className="text-xl font-bold mt-2 mb-4">{scoreStatus}</h3>
+                
+                <div className="flex flex-col gap-2 mt-4 bg-black/20 p-4 rounded-xl backdrop-blur-sm border border-white/10">
+                  <div className="flex items-start gap-2">
+                    <Thermometer className="w-5 h-5 opacity-80 shrink-0" />
+                    <p className="text-sm font-medium text-white/90">{tempFeedback || "กำลังรอข้อมูลอุณหภูมิ..."}</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Droplet className="w-5 h-5 opacity-80 shrink-0" />
+                    <p className="text-sm font-medium text-white/90">{lightFeedback || "กำลังรอข้อมูลแสง..."}</p>
+                  </div>
+                </div>
               </div>
               <div className="p-4 bg-white/20 rounded-3xl backdrop-blur-md shadow-inner hidden sm:block">
                 {feelingIcon}
@@ -313,7 +346,7 @@ export default function DashboardClient({
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-lg font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
               <Activity className="w-5 h-5 text-emerald-500" />
-              Temperature Trend
+              Environmental Trends (Medical Standard)
             </h2>
             <span className="px-4 py-1.5 bg-gray-50 border border-gray-100 text-gray-500 text-xs font-bold rounded-full uppercase tracking-wider">
               Live Data
@@ -329,6 +362,10 @@ export default function DashboardClient({
                       <stop offset="5%" stopColor="#f97316" stopOpacity={0.4}/>
                       <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
                     </linearGradient>
+                    <linearGradient id="colorLight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis 
@@ -339,23 +376,47 @@ export default function DashboardClient({
                     dy={15}
                   />
                   <YAxis 
+                    yAxisId="left"
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 600 }}
+                    tick={{ fontSize: 12, fill: '#f97316', fontWeight: 600 }}
                     domain={['dataMin - 1', 'dataMax + 1']}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 12, fill: '#3b82f6', fontWeight: 600 }}
+                    domain={[0, 100]}
                   />
                   <Tooltip 
                     contentStyle={{ borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    itemStyle={{ fontWeight: 'bold', color: '#f97316' }}
-                    formatter={(value: any) => [`${parseFloat(value).toFixed(1)} °C`, 'Temperature']}
+                    itemStyle={{ fontWeight: 'bold' }}
+                    formatter={(value: any, name: any) => {
+                      if (name === 'temperature') return [`${parseFloat(value).toFixed(1)} °C`, 'Temperature'];
+                      if (name === 'light') return [`${parseFloat(value).toFixed(1)} %`, 'Light Level'];
+                      return [value, name];
+                    }}
                   />
                   <Area 
+                    yAxisId="left"
                     type="monotone" 
                     dataKey="temperature" 
                     stroke="#f97316" 
                     strokeWidth={4}
                     fillOpacity={1} 
                     fill="url(#colorTemp)" 
+                    animationDuration={1500}
+                  />
+                  <Area 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="light" 
+                    stroke="#3b82f6" 
+                    strokeWidth={4}
+                    fillOpacity={1} 
+                    fill="url(#colorLight)" 
                     animationDuration={1500}
                   />
                 </AreaChart>

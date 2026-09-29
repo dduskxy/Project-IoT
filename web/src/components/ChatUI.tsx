@@ -49,7 +49,7 @@ export default function ChatUI({ sensorData }: { sensorData?: any }) {
             return;
           }
 
-          const wakeWords = ['hey ต้นไม้', 'เฮ้ต้นไม้', 'เฮ้ ต้นไม้', 'สวัสดีต้นไม้', 'สวัสดี ต้นไม้', 'hi ต้นไม้', 'ต้นไม้'];
+          const wakeWords = ['hey sleep', 'hi sleep', 'เฮ้สลีป', 'ไฮสลีป', 'สวัสดีสลีป', 'sleep', 'สลีป'];
           let isWakeWordDetected = false;
           let command = transcript;
 

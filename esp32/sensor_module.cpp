@@ -26,7 +26,6 @@ void Buzzer_Set(bool isOn) {
 }
 
 void RGB_Init() {
-    rgbLed.init();
     RGB_Off();
     Serial.println("RGB LED initialized (OFF).");
 }
