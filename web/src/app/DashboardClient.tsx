@@ -163,44 +163,44 @@ export default function DashboardClient({
       <div className="xl:col-span-3 flex flex-col gap-6">
         
         {/* Top Overview Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           
           {/* Connection Status Card */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between transition-transform hover:-translate-y-1">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-between transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
             <div>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
-              <h3 className="text-2xl font-black text-gray-800">
+              <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">System Status</p>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">
                 {isConnected ? 'Online' : 'Offline'}
               </h3>
             </div>
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isConnected ? 'bg-emerald-100 text-emerald-500' : 'bg-red-100 text-red-500'}`}>
-              {isConnected ? <Wifi className="w-7 h-7" /> : <WifiOff className="w-7 h-7" />}
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${isConnected ? 'bg-gradient-to-br from-emerald-400 to-emerald-500 text-white' : 'bg-gradient-to-br from-red-400 to-red-500 text-white'}`}>
+              {isConnected ? <Wifi className="w-6 h-6" /> : <WifiOff className="w-6 h-6" />}
             </div>
           </div>
 
           {/* Temperature Card */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between transition-transform hover:-translate-y-1">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-between transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
             <div>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Temperature</p>
-              <h3 className="text-2xl font-black text-gray-800">
+              <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Temperature</p>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">
                 {temp !== null ? `${temp.toFixed(1)}°C` : '--°C'}
               </h3>
             </div>
-            <div className="w-14 h-14 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center">
-              <Thermometer className="w-7 h-7" />
+            <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-rose-400 text-white shadow-inner shadow-white/20 rounded-2xl flex items-center justify-center">
+              <Thermometer className="w-6 h-6" />
             </div>
           </div>
 
           {/* Light Card */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between transition-transform hover:-translate-y-1">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-between transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1">
             <div>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Light</p>
-              <h3 className="text-2xl font-black text-gray-800">
+              <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Light Intensity</p>
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">
                 {light !== null ? `${light.toFixed(1)}%` : '--%'}
               </h3>
             </div>
-            <div className="w-14 h-14 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center">
-              <Droplet className="w-7 h-7" />
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-inner shadow-white/20 rounded-2xl flex items-center justify-center">
+              <Droplet className="w-6 h-6" />
             </div>
           </div>
 
@@ -245,99 +245,83 @@ export default function DashboardClient({
           </div>
 
           {/* Controls Bento Card */}
-          <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
-            <h2 className="text-lg font-black text-gray-800 mb-6 flex items-center gap-2 uppercase tracking-wider">
-              <Cpu className="w-5 h-5 text-indigo-500" />
+          <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col">
+            <h2 className="text-sm font-black text-gray-400 mb-6 flex items-center gap-2 uppercase tracking-widest">
+              <Cpu className="w-4 h-4 text-indigo-400" />
               Hardware Controls
             </h2>
             
-            {!isAdmin ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50">
-                <ShieldAlert className="w-12 h-12 text-gray-300 mb-4" />
-                <h3 className="text-gray-800 font-bold text-lg mb-1">Restricted Access</h3>
-                <p className="text-gray-500 text-sm mb-6 text-center max-w-[200px]">Login required to execute hardware commands.</p>
-                <button 
-                  onClick={() => router.push('/login')}
-                  className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-gray-900/20"
-                >
-                  Admin Login
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4 flex-1 justify-center">
-                
-                {/* Buzzer Control */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-4 rounded-2xl ${deviceStatus?.buzzer_status === 'ON' ? 'bg-red-100' : 'bg-gray-200'}`}>
-                      <Bell className={`w-6 h-6 ${deviceStatus?.buzzer_status === 'ON' ? 'text-red-600' : 'text-gray-500'}`} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800">Alarm Buzzer</p>
-                      <p className="text-xs font-medium text-gray-500">{isBuzzerPending ? 'Syncing...' : 'GPIO 25'}</p>
-                    </div>
+            <div className="flex flex-col gap-4 flex-1 justify-center">
+              {/* Buzzer Control */}
+              <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 transition-all hover:bg-gray-50">
+                <div className="flex items-center gap-4">
+                  <div className={`p-4 rounded-2xl shadow-sm ${deviceStatus?.buzzer_status === 'ON' ? 'bg-gradient-to-br from-red-400 to-red-500 text-white' : 'bg-white text-gray-400'}`}>
+                    <Bell className="w-5 h-5" />
                   </div>
-                  <div className="flex gap-2 bg-gray-200/50 p-1 rounded-xl">
-                    <button 
-                      disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'ON'}
-                      onClick={() => toggleBuzzer('ON')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.buzzer_status === 'ON' ? 'bg-white shadow-sm text-red-600' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
-                    >
-                      ON
-                    </button>
-                    <button 
-                      disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'OFF'}
-                      onClick={() => toggleBuzzer('OFF')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.buzzer_status === 'OFF' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
-                    >
-                      OFF
-                    </button>
+                  <div>
+                    <p className="font-bold text-gray-800 text-sm">Alarm Buzzer</p>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{isBuzzerPending ? 'Syncing...' : 'GPIO 25'}</p>
                   </div>
                 </div>
+                <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
+                  <button 
+                    disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'ON'}
+                    onClick={() => toggleBuzzer('ON')}
+                    className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.buzzer_status === 'ON' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-red-500' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
+                  >
+                    ON
+                  </button>
+                  <button 
+                    disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'OFF'}
+                    onClick={() => toggleBuzzer('OFF')}
+                    className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.buzzer_status === 'OFF' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-gray-800' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
+                  >
+                    OFF
+                  </button>
+                </div>
+              </div>
 
-                {/* RGB LED Control */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-4 rounded-2xl ${deviceStatus?.rgb_status === 'ON' ? 'bg-indigo-100' : 'bg-gray-200'}`}>
-                      <Lightbulb 
-                        className={`w-6 h-6 ${deviceStatus?.rgb_status === 'ON' ? 'text-indigo-600' : 'text-gray-500'}`} 
-                        style={deviceStatus?.rgb_status === 'ON' ? { color: deviceStatus?.rgb_color } : {}}
-                      />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800">RGB Status</p>
-                      <p className="text-xs font-medium text-gray-500">{isRgbPending ? 'Syncing...' : 'GPIO 26, 27'}</p>
-                    </div>
+              {/* RGB LED Control */}
+              <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 transition-all hover:bg-gray-50">
+                <div className="flex items-center gap-4">
+                  <div className={`p-4 rounded-2xl shadow-sm ${deviceStatus?.rgb_status === 'ON' ? 'bg-gradient-to-br from-indigo-400 to-indigo-500 text-white' : 'bg-white text-gray-400'}`}>
+                    <Lightbulb 
+                      className="w-5 h-5"
+                      style={deviceStatus?.rgb_status === 'ON' ? { color: '#ffffff', filter: `drop-shadow(0 0 4px ${deviceStatus?.rgb_color})` } : {}}
+                    />
                   </div>
-                  <div className="flex gap-2 bg-gray-200/50 p-1 rounded-xl items-center">
-                    {deviceStatus?.rgb_status === 'ON' && (
-                      <input 
-                        type="color" 
-                        value={deviceStatus?.rgb_color || '#000000'} 
-                        onChange={(e) => changeRgbColor('ON', e.target.value)}
-                        disabled={isRgbPending}
-                        className="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent"
-                      />
-                    )}
-                    <button 
-                      disabled={isRgbPending || deviceStatus?.rgb_status === 'ON'}
-                      onClick={() => changeRgbColor('ON')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.rgb_status === 'ON' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
-                    >
-                      ON
-                    </button>
-                    <button 
-                      disabled={isRgbPending || deviceStatus?.rgb_status === 'OFF'}
-                      onClick={() => changeRgbColor('OFF')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.rgb_status === 'OFF' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
-                    >
-                      OFF
-                    </button>
+                  <div>
+                    <p className="font-bold text-gray-800 text-sm">RGB Status</p>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{isRgbPending ? 'Syncing...' : 'GPIO 26, 27'}</p>
                   </div>
                 </div>
-                
+                <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl items-center">
+                  {deviceStatus?.rgb_status === 'ON' && (
+                    <input 
+                      type="color" 
+                      value={deviceStatus?.rgb_color || '#000000'} 
+                      onChange={(e) => changeRgbColor('ON', e.target.value)}
+                      disabled={isRgbPending}
+                      className="w-7 h-7 rounded cursor-pointer border-0 p-0 bg-transparent ml-2"
+                    />
+                  )}
+                  <button 
+                    disabled={isRgbPending || deviceStatus?.rgb_status === 'ON'}
+                    onClick={() => changeRgbColor('ON')}
+                    className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.rgb_status === 'ON' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-indigo-500' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
+                  >
+                    ON
+                  </button>
+                  <button 
+                    disabled={isRgbPending || deviceStatus?.rgb_status === 'OFF'}
+                    onClick={() => changeRgbColor('OFF')}
+                    className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.rgb_status === 'OFF' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-gray-800' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
+                  >
+                    OFF
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
