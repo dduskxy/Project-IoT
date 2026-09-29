@@ -16,6 +16,8 @@ extern const char* DEVICE_ID;
 #define TEMP_PIN 34
 #define LIGHT_PIN 35
 #define BUZZER_PIN 25
+#define RGB_CLK_PIN 26
+#define RGB_DAT_PIN 27
 
 // Timings
 #define SENSOR_UPDATE_INTERVAL 5000 // 5 seconds

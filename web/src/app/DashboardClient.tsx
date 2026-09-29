@@ -7,7 +7,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format } from 'date-fns';
 import { 
   Droplet, Battery, Zap, Activity, Thermometer, Clock, 
-  Wifi, WifiOff, Power, ShieldAlert, Cpu, Bell
+  Wifi, WifiOff, Power, ShieldAlert, Cpu, Bell, Lightbulb
 } from 'lucide-react';
 
 export default function DashboardClient({ 
@@ -22,6 +22,7 @@ export default function DashboardClient({
   const [deviceStatus, setDeviceStatus] = useState<any>(initialDeviceStatus);
   const [sensorData, setSensorData] = useState<any[]>(initialSensorData);
   const [isBuzzerPending, setIsBuzzerPending] = useState(false);
+  const [isRgbPending, setIsRgbPending] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const router = useRouter();
   
@@ -34,6 +35,7 @@ export default function DashboardClient({
         console.log('Realtime device_status UPDATE:', payload);
         setDeviceStatus((prev: any) => ({ ...prev, ...payload.new }));
         setIsBuzzerPending(false);
+        setIsRgbPending(false);
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sleep_monitor_data', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
         setSensorData(prev => [payload.new, ...prev].slice(0, 100)); // Keep latest 100
@@ -49,7 +51,6 @@ export default function DashboardClient({
 
   const toggleBuzzer = async (newStatus: 'ON' | 'OFF') => {
     setIsBuzzerPending(true);
-    // If there is no existing record, we should insert or upsert it
     const { error } = await supabase
       .from('device_status')
       .upsert({
@@ -60,6 +61,24 @@ export default function DashboardClient({
     if (error) {
       alert(`Error sending Buzzer command: ` + error.message);
       setIsBuzzerPending(false);
+    }
+  };
+
+  const changeRgbColor = async (newStatus: 'ON' | 'OFF', newColor?: string) => {
+    setIsRgbPending(true);
+    const updateData: any = {
+      device_id: 'esp32-device-01',
+      rgb_status: newStatus
+    };
+    if (newColor) updateData.rgb_color = newColor;
+
+    const { error } = await supabase
+      .from('device_status')
+      .upsert(updateData, { onConflict: 'device_id' });
+      
+    if (error) {
+      alert(`Error sending RGB command: ` + error.message);
+      setIsRgbPending(false);
     }
   };
 
@@ -242,6 +261,47 @@ export default function DashboardClient({
                     </button>
                   </div>
                 </div>
+
+                {/* RGB LED Control */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-4 rounded-2xl ${deviceStatus?.rgb_status === 'ON' ? 'bg-indigo-100' : 'bg-gray-200'}`}>
+                      <Lightbulb 
+                        className={`w-6 h-6 ${deviceStatus?.rgb_status === 'ON' ? 'text-indigo-600' : 'text-gray-500'}`} 
+                        style={deviceStatus?.rgb_status === 'ON' ? { color: deviceStatus?.rgb_color } : {}}
+                      />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800">RGB Status</p>
+                      <p className="text-xs font-medium text-gray-500">{isRgbPending ? 'Syncing...' : 'GPIO 26, 27'}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 bg-gray-200/50 p-1 rounded-xl items-center">
+                    {deviceStatus?.rgb_status === 'ON' && (
+                      <input 
+                        type="color" 
+                        value={deviceStatus?.rgb_color || '#000000'} 
+                        onChange={(e) => changeRgbColor('ON', e.target.value)}
+                        disabled={isRgbPending}
+                        className="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent"
+                      />
+                    )}
+                    <button 
+                      disabled={isRgbPending || deviceStatus?.rgb_status === 'ON'}
+                      onClick={() => changeRgbColor('ON')}
+                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.rgb_status === 'ON' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
+                    >
+                      ON
+                    </button>
+                    <button 
+                      disabled={isRgbPending || deviceStatus?.rgb_status === 'OFF'}
+                      onClick={() => changeRgbColor('OFF')}
+                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.rgb_status === 'OFF' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
+                    >
+                      OFF
+                    </button>
+                  </div>
+                </div>
                 
               </div>
             )}
@@ -313,7 +373,7 @@ export default function DashboardClient({
 
       {/* Right Column: Chat UI */}
       <div className="xl:col-span-1 h-full min-h-[600px]">
-        <ChatUI sensorData={{ ...latestData, buzzer_status: deviceStatus?.buzzer_status }} />
+        <ChatUI sensorData={{ ...latestData, buzzer_status: deviceStatus?.buzzer_status, rgb_status: deviceStatus?.rgb_status, rgb_color: deviceStatus?.rgb_color }} />
       </div>
 
     </div>

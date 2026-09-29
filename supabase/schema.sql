@@ -14,6 +14,8 @@ CREATE TABLE device_status (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     device_id TEXT UNIQUE NOT NULL,
     buzzer_status TEXT DEFAULT 'OFF',
+    rgb_status TEXT DEFAULT 'OFF',
+    rgb_color TEXT DEFAULT '#000000',
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

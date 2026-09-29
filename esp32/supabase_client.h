@@ -5,6 +5,6 @@
 #include <ArduinoJson.h>
 
 void Supabase_SendSleepData(float temperature, float light);
-String Supabase_FetchBuzzerStatus();
+bool Supabase_FetchDeviceStatus(String &buzzer, String &rgbStatus, String &rgbColor);
 
 #endif

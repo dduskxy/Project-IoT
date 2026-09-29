@@ -48,19 +48,19 @@ void Supabase_SendSleepData(float temperature, float light) {
     http.end();
 }
 
-String Supabase_FetchBuzzerStatus() {
-    if (WiFi.status() != WL_CONNECTED) return "";
+bool Supabase_FetchDeviceStatus(String &buzzer, String &rgbStatus, String &rgbColor) {
+    if (WiFi.status() != WL_CONNECTED) return false;
     Supabase_InitClient();
     http.setTimeout(5000);
     
-    String url = String(SUPABASE_URL) + "/rest/v1/device_status?select=buzzer_status&device_id=eq." + String(DEVICE_ID) + "&limit=1";
+    String url = String(SUPABASE_URL) + "/rest/v1/device_status?select=buzzer_status,rgb_status,rgb_color&device_id=eq." + String(DEVICE_ID) + "&limit=1";
     http.begin(*secureClient, url);
     http.addHeader("apikey", SUPABASE_KEY);
     http.addHeader("Authorization", String("Bearer ") + SUPABASE_KEY);
     http.addHeader("Content-Type", "application/json");
     
     int httpResponseCode = http.GET();
-    String buzzerStatus = "";
+    bool success = false;
     
     if (httpResponseCode >= 200 && httpResponseCode < 300) {
         String payload = http.getString();
@@ -69,11 +69,14 @@ String Supabase_FetchBuzzerStatus() {
             DeserializationError error = deserializeJson(doc, payload);
             if (!error) {
                 if (doc.is<JsonArray>() && doc.size() > 0) {
-                    buzzerStatus = doc[0]["buzzer_status"].as<String>();
+                    buzzer = doc[0]["buzzer_status"].as<String>();
+                    rgbStatus = doc[0]["rgb_status"].as<String>();
+                    rgbColor = doc[0]["rgb_color"].as<String>();
+                    success = true;
                 }
             }
         }
     }
     http.end();
-    return buzzerStatus;
+    return success;
 }
