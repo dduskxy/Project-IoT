@@ -72,7 +72,7 @@ Please respond in JSON format. ให้คุณตอบกลับมาใ�
 
     if (groqKey) {
       try {
-        console.log("Using Groq (Llama 3 / Qwen)...");
+        console.log("Using Groq (Qwen)...");
         const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -80,7 +80,7 @@ Please respond in JSON format. ให้คุณตอบกลับมาใ�
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "llama3-8b-8192", 
+            model: "qwen/qwen3.8-27b", 
             messages: [{ role: "system", content: prompt }],
             response_format: { type: "json_object" },
             temperature: 0.7
@@ -103,9 +103,10 @@ Please respond in JSON format. ให้คุณตอบกลับมาใ�
     // Automatic Hub: Fallback to Gemini if Groq is not configured or fails
     if (!aiResponse) {
       const modelsToTry = [
+        'gemini-3.8-flash',
+        'gemini-3.5-flash',
+        'gemini-3.0-flash',
         'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-pro'
       ];
 
       for (const modelName of modelsToTry) {
