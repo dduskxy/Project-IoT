@@ -24,9 +24,45 @@ export default function DashboardClient({
   const [isBuzzerPending, setIsBuzzerPending] = useState(false);
   const [isRgbPending, setIsRgbPending] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const router = useRouter();
   
+  // Alarm Clock States
+  const [alarmTime, setAlarmTime] = useState<string>('');
+  const [isAlarmEnabled, setIsAlarmEnabled] = useState<boolean>(false);
+  
+  const router = useRouter();
   const [supabase] = useState(() => createClient());
+
+  // Load alarm settings
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTime = localStorage.getItem('sleep_alarm_time');
+      const savedEnabled = localStorage.getItem('sleep_alarm_enabled') === 'true';
+      if (savedTime) setAlarmTime(savedTime);
+      setIsAlarmEnabled(savedEnabled);
+    }
+  }, []);
+
+  // Alarm ticker
+  useEffect(() => {
+    if (!isAlarmEnabled || !alarmTime) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentHours = now.getHours().toString().padStart(2, '0');
+      const currentMinutes = now.getMinutes().toString().padStart(2, '0');
+      const currentSeconds = now.getSeconds().toString().padStart(2, '0');
+      
+      const [alarmH, alarmM] = alarmTime.split(':');
+      
+      if (currentHours === alarmH && currentMinutes === alarmM && currentSeconds === '00') {
+        if (deviceStatus?.buzzer_status !== 'ON') {
+          toggleBuzzer('ON');
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [alarmTime, isAlarmEnabled, deviceStatus]);
 
   useEffect(() => {
     const channel = supabase
@@ -253,31 +289,62 @@ export default function DashboardClient({
             
             <div className="flex flex-col gap-4 flex-1 justify-center">
               {/* Buzzer Control */}
-              <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 transition-all hover:bg-gray-50">
-                <div className="flex items-center gap-4">
-                  <div className={`p-4 rounded-2xl shadow-sm ${deviceStatus?.buzzer_status === 'ON' ? 'bg-gradient-to-br from-red-400 to-red-500 text-white' : 'bg-white text-gray-400'}`}>
-                    <Bell className="w-5 h-5" />
+              <div className="flex flex-col p-4 bg-gray-50/50 rounded-2xl border border-gray-100 transition-all hover:bg-gray-50 gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-4 rounded-2xl shadow-sm ${deviceStatus?.buzzer_status === 'ON' ? 'bg-gradient-to-br from-red-400 to-red-500 text-white' : 'bg-white text-gray-400'}`}>
+                      <Bell className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">Alarm Buzzer</p>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{isBuzzerPending ? 'Syncing...' : 'Manual Toggle'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-gray-800 text-sm">Alarm Buzzer</p>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">{isBuzzerPending ? 'Syncing...' : 'GPIO 25'}</p>
+                  <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
+                    <button 
+                      disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'ON'}
+                      onClick={() => toggleBuzzer('ON')}
+                      className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.buzzer_status === 'ON' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-red-500' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
+                    >
+                      ON
+                    </button>
+                    <button 
+                      disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'OFF'}
+                      onClick={() => toggleBuzzer('OFF')}
+                      className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.buzzer_status === 'OFF' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-gray-800' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
+                    >
+                      OFF
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
-                  <button 
-                    disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'ON'}
-                    onClick={() => toggleBuzzer('ON')}
-                    className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.buzzer_status === 'ON' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-red-500' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
-                  >
-                    ON
-                  </button>
-                  <button 
-                    disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'OFF'}
-                    onClick={() => toggleBuzzer('OFF')}
-                    className={`px-6 py-2 rounded-lg font-bold text-xs transition-all ${deviceStatus?.buzzer_status === 'OFF' ? 'bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-gray-800' : 'text-gray-400 hover:text-gray-600'} disabled:opacity-50`}
-                  >
-                    OFF
-                  </button>
+                
+                {/* Alarm Clock Settings */}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-200/60">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Set Alarm</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="time" 
+                      value={alarmTime}
+                      onChange={(e) => {
+                        setAlarmTime(e.target.value);
+                        localStorage.setItem('sleep_alarm_time', e.target.value);
+                      }}
+                      className="text-xs font-bold bg-white border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-red-400 text-gray-700"
+                    />
+                    <button
+                      onClick={() => {
+                        const newState = !isAlarmEnabled;
+                        setIsAlarmEnabled(newState);
+                        localStorage.setItem('sleep_alarm_enabled', newState.toString());
+                      }}
+                      className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all ${isAlarmEnabled ? 'bg-red-500 text-white shadow-md shadow-red-500/20' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+                    >
+                      {isAlarmEnabled ? 'ACTIVE' : 'OFF'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
