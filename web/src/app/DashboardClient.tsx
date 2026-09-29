@@ -133,33 +133,27 @@ export default function DashboardClient({
   
   if (latestData) {
     // Medical Standard Evaluation for Sleep
-    // 1. Temperature: National Sleep Foundation recommends 15.6 - 19.4°C, but for tropical climates 20-24°C is widely accepted as optimal.
+    // 1. Temperature: 20-24°C is widely accepted as optimal for tropical climates.
     let tempScore = 100;
     if (temp >= 20 && temp <= 24) {
       tempScore = 100;
       tempFeedback = "อุณหภูมิอยู่ในเกณฑ์ดีเยี่ยมตามมาตรฐานการแพทย์";
-    } else if (temp >= 25 && temp <= 27) {
-      tempScore = 70;
-      tempFeedback = "อุณหภูมิค่อนข้างอุ่น อาจทำให้หลับไม่สนิท";
-    } else if (temp < 20) {
-      tempScore = 60;
-      tempFeedback = "อุณหภูมิเย็นเกินไป อาจทำให้ตื่นกลางดึก";
+    } else if (temp > 24) {
+      tempScore = Math.max(0, 100 - (temp - 24) * 15);
+      tempFeedback = tempScore > 60 ? "อุณหภูมิเริ่มอุ่น อาจทำให้หลับไม่สนิท" : "อุณหภูมิร้อนเกินไป ไม่เหมาะกับการนอนหลับ";
     } else {
-      tempScore = 30;
-      tempFeedback = "อุณหภูมิร้อนเกินไป ไม่เหมาะกับการนอนหลับ";
+      tempScore = Math.max(0, 100 - (20 - temp) * 15);
+      tempFeedback = tempScore > 60 ? "อุณหภูมิเริ่มเย็น อาจทำให้รู้สึกหนาว" : "อุณหภูมิเย็นเกินไป อาจทำให้ตื่นกลางดึก";
     }
     
-    // 2. Light: Lux standard (<5 lux is ideal for Melatonin production)
+    // 2. Light: Lux standard (<3 lux is ideal for Melatonin production)
     let lightScore = 100;
-    if (light <= 5) {
+    if (light <= 3) {
       lightScore = 100;
       lightFeedback = "สภาพแสงมืดสนิท เหมาะสมต่อการหลั่งฮอร์โมนเมลาโทนิน";
-    } else if (light <= 30) {
-      lightScore = 70;
-      lightFeedback = "มีแสงสลัวรบกวนเล็กน้อย ควรปิดม่านหรือหรี่ไฟลงอีก";
     } else {
-      lightScore = 30;
-      lightFeedback = "สภาพแสงสว่างเกินไป สมองจะไม่เข้าสู่ภาวะหลับลึก";
+      lightScore = Math.max(0, 100 - (light - 3) * 1.5);
+      lightFeedback = lightScore > 60 ? "มีแสงสลัวรบกวนเล็กน้อย ควรหรี่ไฟลงอีก" : "สภาพแสงสว่างเกินไป สมองจะไม่เข้าสู่ภาวะหลับลึก";
     }
     
     let buzzerScore = 100;
