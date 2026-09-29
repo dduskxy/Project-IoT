@@ -81,7 +81,10 @@ Please respond in JSON format. ให้คุณตอบกลับมาใ�
           },
           body: JSON.stringify({
             model: "qwen/qwen3.8-27b", 
-            messages: [{ role: "system", content: prompt }],
+            messages: [
+              { role: "system", content: "You are a smart IoT AI assistant. You must respond ONLY in strict JSON." },
+              { role: "user", content: prompt }
+            ],
             response_format: { type: "json_object" },
             temperature: 0.7
           })
