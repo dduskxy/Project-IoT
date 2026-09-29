@@ -149,17 +149,17 @@ export default function DashboardClient({
       tempFeedback = "อุณหภูมิร้อนเกินไป ไม่เหมาะกับการนอนหลับ";
     }
     
-    // 2. Light: Complete darkness (<5 lux or very low percentage) is required for Melatonin production.
+    // 2. Light: Lux standard (<5 lux is ideal for Melatonin production)
     let lightScore = 100;
-    if (light <= 10) {
+    if (light <= 5) {
       lightScore = 100;
-      lightFeedback = "ความมืดเหมาะสมต่อการหลั่งฮอร์โมนเมลาโทนิน";
+      lightFeedback = "สภาพแสงมืดสนิท เหมาะสมต่อการหลั่งฮอร์โมนเมลาโทนิน";
     } else if (light <= 30) {
-      lightScore = 60;
-      lightFeedback = "มีแสงสว่างรบกวนเล็กน้อย ควรหรี่ไฟลง";
+      lightScore = 70;
+      lightFeedback = "มีแสงสลัวรบกวนเล็กน้อย ควรปิดม่านหรือหรี่ไฟลงอีก";
     } else {
-      lightScore = 20;
-      lightFeedback = "สว่างเกินไป สมองจะไม่เข้าสู่ภาวะหลับลึก";
+      lightScore = 30;
+      lightFeedback = "สภาพแสงสว่างเกินไป สมองจะไม่เข้าสู่ภาวะหลับลึก";
     }
     
     let buzzerScore = 100;
@@ -232,7 +232,7 @@ export default function DashboardClient({
             <div>
               <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Light Intensity</p>
               <h3 className="text-2xl font-black text-gray-900 tracking-tight">
-                {light !== null ? `${light.toFixed(1)}%` : '--%'}
+                {light !== null ? `${light.toFixed(1)} Lux` : '-- Lux'}
               </h3>
             </div>
             <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-inner shadow-white/20 rounded-2xl flex items-center justify-center">
@@ -439,14 +439,13 @@ export default function DashboardClient({
                     axisLine={false} 
                     tickLine={false} 
                     tick={{ fontSize: 12, fill: '#3b82f6', fontWeight: 600 }}
-                    domain={[0, 100]}
                   />
                   <Tooltip 
                     contentStyle={{ borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                     itemStyle={{ fontWeight: 'bold' }}
                     formatter={(value: any, name: any) => {
                       if (name === 'temperature') return [`${parseFloat(value).toFixed(1)} °C`, 'Temperature'];
-                      if (name === 'light') return [`${parseFloat(value).toFixed(1)} %`, 'Light Level'];
+                      if (name === 'light') return [`${parseFloat(value).toFixed(1)} Lux`, 'Illuminance'];
                       return [value, name];
                     }}
                   />

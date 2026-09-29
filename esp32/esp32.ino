@@ -72,7 +72,7 @@ void loop() {
         float temp = Temperature_Read();
         float light = Light_Read();
         
-        Serial.printf("[V2] Temp: %.1fC, Light: %.1f%%, Buzzer: %s, RGB: %s (%s)\n", temp, light, currentBuzzerStatus.c_str(), currentRgbStatus.c_str(), currentRgbColor.c_str());
+        Serial.printf("[V2] Temp: %.1fC, Light: %.1f Lux, Buzzer: %s, RGB: %s (%s)\n", temp, light, currentBuzzerStatus.c_str(), currentRgbStatus.c_str(), currentRgbColor.c_str());
         
         // Push to Supabase
         Supabase_SendSleepData(temp, light);

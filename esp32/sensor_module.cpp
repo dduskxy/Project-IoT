@@ -54,6 +54,20 @@ float Temperature_Read() {
 
 float Light_Read() {
     int rawValue = analogRead(LIGHT_PIN);
-    float percentage = (rawValue / 4095.0) * 100.0;
-    return percentage;
+    
+    // Convert raw ADC (0-4095) to Voltage (0-3.3V)
+    float voltage = rawValue * (3.3 / 4095.0);
+    
+    // Prevent division by zero
+    if (voltage <= 0.01) return 0.0;
+    if (voltage >= 3.29) return 1000.0; // Max out at very bright
+    
+    // Grove Light Sensor (GL5528) uses a 10k pull-down resistor
+    // R_LDR = (3.3V - Vout) * 10k / Vout
+    float r_ldr = (3.3 - voltage) * 10.0 / voltage; // in kOhm
+    
+    // Standard approximation formula for Lux: Lux ≈ 500 / R_LDR
+    float lux = 500.0 / r_ldr;
+    
+    return lux;
 }
