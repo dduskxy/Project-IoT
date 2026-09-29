@@ -6,7 +6,7 @@ import ChatUI from '@/components/ChatUI';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { 
-  Droplet, Battery, Zap, Activity, Thermometer, Clock, 
+  Sun, Battery, Zap, Activity, Thermometer, Clock, 
   Wifi, WifiOff, Power, ShieldAlert, Cpu, Bell, Lightbulb
 } from 'lucide-react';
 
@@ -235,8 +235,8 @@ export default function DashboardClient({
                 {light !== null ? `${light.toFixed(1)}%` : '--%'}
               </h3>
             </div>
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-inner shadow-white/20 rounded-2xl flex items-center justify-center">
-              <Droplet className="w-6 h-6" />
+            <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-yellow-500 text-white shadow-inner shadow-white/20 rounded-2xl flex items-center justify-center">
+              <Sun className="w-6 h-6" />
             </div>
           </div>
 
@@ -262,7 +262,7 @@ export default function DashboardClient({
                     <p className="text-sm font-medium text-white/90">{tempFeedback || "กำลังรอข้อมูลอุณหภูมิ..."}</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Droplet className="w-5 h-5 opacity-80 shrink-0" />
+                    <Sun className="w-5 h-5 opacity-80 shrink-0" />
                     <p className="text-sm font-medium text-white/90">{lightFeedback || "กำลังรอข้อมูลแสง..."}</p>
                   </div>
                 </div>
