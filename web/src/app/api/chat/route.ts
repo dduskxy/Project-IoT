@@ -103,11 +103,9 @@ Please respond in JSON format. ให้คุณตอบกลับมาใ�
     // Automatic Hub: Fallback to Gemini if Groq is not configured or fails
     if (!aiResponse) {
       const modelsToTry = [
-        'gemini-3.7-flash', 
-        'gemini-flash-latest', 
-        'gemini-3.5-flash', 
-        'gemini-3.6-flash',
-        'gemini-1.5-flash'
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-pro'
       ];
 
       for (const modelName of modelsToTry) {
