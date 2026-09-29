@@ -21,6 +21,7 @@ void Supabase_SendSleepData(float temperature, float light) {
     }
     
     Supabase_InitClient();
+    http.setReuse(true);
     http.setTimeout(5000); // 5 seconds timeout
     
     String url = String(SUPABASE_URL) + "/rest/v1/sleep_monitor_data";
@@ -51,6 +52,7 @@ void Supabase_SendSleepData(float temperature, float light) {
 bool Supabase_FetchDeviceStatus(String &buzzer, String &rgbStatus, String &rgbColor) {
     if (WiFi.status() != WL_CONNECTED) return false;
     Supabase_InitClient();
+    http.setReuse(true);
     http.setTimeout(5000);
     
     String url = String(SUPABASE_URL) + "/rest/v1/device_status?select=buzzer_status,rgb_status,rgb_color&device_id=eq." + String(DEVICE_ID) + "&limit=1";
