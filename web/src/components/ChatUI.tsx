@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Send, Volume2, VolumeX } from 'lucide-react';
 
-export default function ChatUI() {
+export default function ChatUI({ sensorData }: { sensorData?: any }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -218,7 +218,7 @@ export default function ChatUI() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, deviceId: 'esp32-device-01' }),
+        body: JSON.stringify({ message: userMessage, deviceId: 'esp32-device-01', sensorData }),
       });
       
       if (!res.ok) {
@@ -254,7 +254,7 @@ export default function ChatUI() {
     <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm flex flex-col h-full min-h-[500px]">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
-          <span className="text-xl">🪴</span> Flaura AI
+          <span className="text-xl">💤</span> Sleep AI
         </h2>
         
         {/* Toggle Voice Output Button */}

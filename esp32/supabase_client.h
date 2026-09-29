@@ -4,9 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-void Supabase_SendSensorData(float moisture);
-void Supabase_UpdateStatus(bool ledOn, bool pumpOn, int waterLevel, int battery);
-String Supabase_FetchCommand();
-void Supabase_UpdateCommandStatus(String commandId, String status);
+void Supabase_SendSleepData(float temperature, float light);
+String Supabase_FetchBuzzerStatus();
 
 #endif

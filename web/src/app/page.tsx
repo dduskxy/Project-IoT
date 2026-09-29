@@ -17,9 +17,9 @@ export default async function DashboardPage() {
     .single()
 
   const { data: sensorData, error: ssError } = await supabase
-    .from('sensor_data')
+    .from('sleep_monitor_data')
     .select('*')
-    .order('timestamp', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(50)
 
   if (dsError) console.error("Device Status Error:", dsError)
@@ -34,14 +34,14 @@ export default async function DashboardPage() {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 sm:px-10 py-5 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <span className="text-2xl">🪴</span>
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <span className="text-2xl">💤</span>
           </div>
           <div>
             <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight">
-              Flaura Smart
+              Sleep Monitor
             </h1>
-            <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">IoT Dashboard</p>
+            <p className="text-xs text-indigo-600 font-bold tracking-widest uppercase">IoT Dashboard</p>
           </div>
         </div>
         

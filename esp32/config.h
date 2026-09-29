@@ -12,17 +12,13 @@ extern const char* SUPABASE_KEY;
 // Device Configuration (from config.cpp)
 extern const char* DEVICE_ID;
 
-// Hardware Pins
-#define LED_PIN 2
-#define LED_INVERTED false
-#define PUMP_PIN 23
-#define MOISTURE_POWER_PIN 19
-#define MOISTURE_SIGNAL_PIN 33
-#define BATTERY_PIN 32
-#define WATER_LEVEL_GROUND_PIN 35
+// Sleep Monitor Pins
+#define TEMP_PIN 34
+#define LIGHT_PIN 35
+#define BUZZER_PIN 25
 
 // Timings
-#define SENSOR_UPDATE_INTERVAL 10000 // 10 seconds
-#define COMMAND_CHECK_INTERVAL 3000  // 3 seconds
+#define SENSOR_UPDATE_INTERVAL 5000 // 5 seconds
+#define COMMAND_CHECK_INTERVAL 3000 // 3 seconds
 
 #endif // CONFIG_H

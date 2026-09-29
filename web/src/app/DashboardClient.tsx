@@ -7,7 +7,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { format } from 'date-fns';
 import { 
   Droplet, Battery, Zap, Activity, Thermometer, Clock, 
-  Wifi, WifiOff, Power, ShieldAlert, Cpu
+  Wifi, WifiOff, Power, ShieldAlert, Cpu, Bell
 } from 'lucide-react';
 
 export default function DashboardClient({ 
@@ -21,7 +21,7 @@ export default function DashboardClient({
 }) {
   const [deviceStatus, setDeviceStatus] = useState<any>(initialDeviceStatus);
   const [sensorData, setSensorData] = useState<any[]>(initialSensorData);
-  const [pendingDevices, setPendingDevices] = useState<Record<string, boolean>>({});
+  const [isBuzzerPending, setIsBuzzerPending] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const router = useRouter();
   
@@ -33,21 +33,10 @@ export default function DashboardClient({
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'device_status', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
         console.log('Realtime device_status UPDATE:', payload);
         setDeviceStatus((prev: any) => ({ ...prev, ...payload.new }));
+        setIsBuzzerPending(false);
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sleep_monitor_data', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
         setSensorData(prev => [payload.new, ...prev].slice(0, 100)); // Keep latest 100
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commands', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
-        console.log('Realtime commands INSERT:', payload);
-        if (payload.new.status === 'PENDING') {
-          setPendingDevices(prev => ({ ...prev, [payload.new.device]: true }));
-        }
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commands', filter: 'device_id=eq.esp32-device-01' }, (payload) => {
-        console.log('Realtime commands UPDATE:', payload);
-        if (payload.new.status !== 'PENDING') {
-          setPendingDevices(prev => ({ ...prev, [payload.new.device]: false }));
-        }
       })
       .subscribe((status) => {
         setIsConnected(status === 'SUBSCRIBED');
@@ -58,58 +47,73 @@ export default function DashboardClient({
     };
   }, [supabase]);
 
-  const toggleDevice = async (device: 'LED' | 'PUMP', newStatus: 'ON' | 'OFF') => {
-    setPendingDevices(prev => ({ ...prev, [device]: true }));
+  const toggleBuzzer = async (newStatus: 'ON' | 'OFF') => {
+    setIsBuzzerPending(true);
+    // If there is no existing record, we should insert or upsert it
     const { error } = await supabase
-      .from('commands')
-      .insert({
+      .from('device_status')
+      .upsert({
         device_id: 'esp32-device-01',
-        device: device,
-        command: newStatus,
-        status: 'PENDING'
-      });
+        buzzer_status: newStatus
+      }, { onConflict: 'device_id' });
       
     if (error) {
-      alert(`Error sending ${device} command: ` + error.message);
-      setPendingDevices(prev => ({ ...prev, [device]: false }));
+      alert(`Error sending Buzzer command: ` + error.message);
+      setIsBuzzerPending(false);
     }
   };
 
-  // Derive feeling from latest sensor data
-  const latestMoistureReading = sensorData?.find((d: any) => d.sensor_type === 'SOIL_MOISTURE');
-  const latestMoisture = latestMoistureReading ? latestMoistureReading.value : null;
+  // Derive sleep data from latest sensor data
+  const latestData = sensorData?.[0] || null;
+  const temp = latestData ? latestData.temperature : null;
+  const light = latestData ? latestData.light : null;
   
-  let plantFeeling = "🤔 กำลังประมวลผล...";
+  let sleepScore = 0;
+  let scoreStatus = "🤔 กำลังประมวลผล...";
   let feelingStyle = "from-gray-500 to-gray-700 shadow-gray-500/20";
   let feelingIcon = <Activity className="w-8 h-8 text-white opacity-80" />;
   
-  if (latestMoisture !== null) {
-    if (latestMoisture < 30) {
-      plantFeeling = "🥵 ดินแห้งเกินไป หิวน้ำ!";
-      feelingStyle = "from-orange-500 to-red-600 shadow-red-500/30";
-      feelingIcon = <Thermometer className="w-8 h-8 text-white opacity-80" />;
-    } else if (latestMoisture <= 70) {
-      plantFeeling = "😊 ความชื้นดีเยี่ยม สดชื่น!";
-      feelingStyle = "from-emerald-400 to-teal-600 shadow-emerald-500/30";
-      feelingIcon = <Droplet className="w-8 h-8 text-white opacity-80" />;
-    } else {
-      plantFeeling = "🥶 น้ำเยอะเกินไปแล้ว!";
-      feelingStyle = "from-blue-500 to-indigo-600 shadow-blue-500/30";
+  if (latestData) {
+    // Prototype sleep score calculation without accelerometer
+    let tempScore = 100;
+    if (temp < 20 || temp > 28) tempScore -= 30; // Ideal temp around 24
+    else if (temp < 22 || temp > 26) tempScore -= 10;
+    
+    let lightScore = 100;
+    if (light > 50) lightScore -= 50; // Too bright
+    else if (light > 20) lightScore -= 20;
+    
+    let buzzerScore = 100;
+    if (deviceStatus?.buzzer_status === 'ON') buzzerScore -= 50; // Buzzer is annoying
+    
+    sleepScore = Math.round((tempScore + lightScore + buzzerScore) / 3);
+    
+    if (sleepScore >= 80) {
+      scoreStatus = "😊 สภาพแวดล้อมดีเยี่ยม (Good)";
+      feelingStyle = "from-indigo-400 to-purple-600 shadow-indigo-500/30";
       feelingIcon = <Zap className="w-8 h-8 text-white opacity-80" />;
+    } else if (sleepScore >= 60) {
+      scoreStatus = "😐 สภาพแวดล้อมปานกลาง (Moderate)";
+      feelingStyle = "from-orange-400 to-yellow-600 shadow-orange-500/30";
+      feelingIcon = <Activity className="w-8 h-8 text-white opacity-80" />;
+    } else {
+      scoreStatus = "😫 ควรปรับสภาพแวดล้อม (Poor)";
+      feelingStyle = "from-red-500 to-rose-600 shadow-red-500/30";
+      feelingIcon = <ShieldAlert className="w-8 h-8 text-white opacity-80" />;
     }
+    
+    // Alerts
+    if (temp > 28) console.warn("อุณหภูมิห้องสูงกว่าค่าที่กำหนด");
+    if (light > 50) console.warn("มีแสงรบกวนในช่วงเวลานอน");
   }
 
-  const isLedPending = pendingDevices['LED'];
-  const isPumpPending = pendingDevices['PUMP'];
-
-  // Prepare Chart Data
+  // Prepare Chart Data (Temperature)
   const chartData = sensorData
-    ?.filter(d => d.sensor_type === 'SOIL_MOISTURE')
-    .slice(0, 20)
+    ?.slice(0, 20)
     .reverse()
     .map(d => ({
-      time: format(new Date(d.timestamp), 'HH:mm:ss'),
-      value: d.value
+      time: format(new Date(d.created_at), 'HH:mm:ss'),
+      temperature: d.temperature
     })) || [];
 
   return (
@@ -118,7 +122,7 @@ export default function DashboardClient({
       <div className="xl:col-span-3 flex flex-col gap-6">
         
         {/* Top Overview Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
           {/* Connection Status Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between transition-transform hover:-translate-y-1">
@@ -128,63 +132,52 @@ export default function DashboardClient({
                 {isConnected ? 'Online' : 'Offline'}
               </h3>
             </div>
-            <div className={`p-4 rounded-2xl ${isConnected ? 'bg-green-50' : 'bg-red-50'}`}>
-              {isConnected ? <Wifi className="w-7 h-7 text-green-500" /> : <WifiOff className="w-7 h-7 text-red-500" />}
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isConnected ? 'bg-emerald-100 text-emerald-500' : 'bg-red-100 text-red-500'}`}>
+              {isConnected ? <Wifi className="w-7 h-7" /> : <WifiOff className="w-7 h-7" />}
             </div>
           </div>
 
-          {/* Moisture Card */}
+          {/* Temperature Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between transition-transform hover:-translate-y-1">
             <div>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Moisture</p>
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Temperature</p>
               <h3 className="text-2xl font-black text-gray-800">
-                {latestMoisture !== null ? `${latestMoisture.toFixed(0)}%` : '--'}
+                {temp !== null ? `${temp.toFixed(1)}°C` : '--°C'}
               </h3>
             </div>
-            <div className="p-4 rounded-2xl bg-blue-50">
-              <Droplet className="w-7 h-7 text-blue-500" />
+            <div className="w-14 h-14 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center">
+              <Thermometer className="w-7 h-7" />
             </div>
           </div>
 
-          {/* Water Tank Card */}
+          {/* Light Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between transition-transform hover:-translate-y-1">
             <div>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Tank Level</p>
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Light</p>
               <h3 className="text-2xl font-black text-gray-800">
-                {deviceStatus?.water_level !== undefined ? `${deviceStatus.water_level}%` : '--'}
+                {light !== null ? `${light.toFixed(1)}%` : '--%'}
               </h3>
             </div>
-            <div className={`p-4 rounded-2xl ${deviceStatus?.water_level < 20 ? 'bg-orange-50' : 'bg-cyan-50'}`}>
-              <Activity className={`w-7 h-7 ${deviceStatus?.water_level < 20 ? 'text-orange-500' : 'text-cyan-500'}`} />
+            <div className="w-14 h-14 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center">
+              <Droplet className="w-7 h-7" />
             </div>
           </div>
 
-          {/* Battery Card */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex items-center justify-between transition-transform hover:-translate-y-1">
-            <div>
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Battery</p>
-              <h3 className="text-2xl font-black text-gray-800">
-                {deviceStatus?.battery_level !== undefined ? `${deviceStatus.battery_level}%` : '--'}
-              </h3>
-            </div>
-            <div className="p-4 rounded-2xl bg-purple-50">
-              <Battery className="w-7 h-7 text-purple-500" />
-            </div>
-          </div>
         </div>
 
-        {/* Hero Section (Plant Feeling + Quick Controls) */}
+        {/* Hero Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* Feeling Gradient Card */}
+          {/* Score Gradient Card */}
           <div className={`relative overflow-hidden rounded-[2rem] p-8 bg-gradient-to-br ${feelingStyle} shadow-xl text-white flex flex-col justify-between min-h-[260px]`}>
             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-48 h-48 bg-white opacity-20 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-48 h-48 bg-black opacity-10 rounded-full blur-3xl"></div>
             
             <div className="relative z-10 flex justify-between items-start">
               <div>
-                <p className="text-white/80 font-bold text-xs mb-2 uppercase tracking-widest">AI Status Analysis</p>
-                <h2 className="text-3xl sm:text-4xl font-black leading-tight">{plantFeeling}</h2>
+                <p className="text-white/80 font-bold text-xs mb-2 uppercase tracking-widest">Sleep Environment Score</p>
+                <h2 className="text-3xl sm:text-4xl font-black leading-tight">{sleepScore} / 100</h2>
+                <h3 className="text-xl font-bold mt-2">{scoreStatus}</h3>
               </div>
               <div className="p-4 bg-white/20 rounded-3xl backdrop-blur-md shadow-inner hidden sm:block">
                 {feelingIcon}
@@ -194,7 +187,7 @@ export default function DashboardClient({
             <div className="relative z-10 mt-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
               <div className="flex items-center gap-2 text-sm font-semibold text-white/90 bg-black/20 px-4 py-2 rounded-full w-fit backdrop-blur-sm">
                 <Clock className="w-4 h-4 opacity-70" />
-                <span>Sync: {deviceStatus?.last_active ? format(new Date(deviceStatus.last_active), 'HH:mm:ss') : 'N/A'}</span>
+                <span>Sync: {deviceStatus?.updated_at ? format(new Date(deviceStatus.updated_at), 'HH:mm:ss') : 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -221,58 +214,29 @@ export default function DashboardClient({
             ) : (
               <div className="flex flex-col gap-4 flex-1 justify-center">
                 
-                {/* LED Control */}
+                {/* Buzzer Control */}
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <div className="flex items-center gap-4">
-                    <div className={`p-4 rounded-2xl ${deviceStatus?.led_status === 'ON' ? 'bg-yellow-100' : 'bg-gray-200'}`}>
-                      <Zap className={`w-6 h-6 ${deviceStatus?.led_status === 'ON' ? 'text-yellow-600' : 'text-gray-500'}`} />
+                    <div className={`p-4 rounded-2xl ${deviceStatus?.buzzer_status === 'ON' ? 'bg-red-100' : 'bg-gray-200'}`}>
+                      <Bell className={`w-6 h-6 ${deviceStatus?.buzzer_status === 'ON' ? 'text-red-600' : 'text-gray-500'}`} />
                     </div>
                     <div>
-                      <p className="font-bold text-gray-800">Grow Light</p>
-                      <p className="text-xs font-medium text-gray-500">{isLedPending ? 'Syncing...' : 'GPIO 2'}</p>
+                      <p className="font-bold text-gray-800">Alarm Buzzer</p>
+                      <p className="text-xs font-medium text-gray-500">{isBuzzerPending ? 'Syncing...' : 'GPIO 25'}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 bg-gray-200/50 p-1 rounded-xl">
                     <button 
-                      disabled={isLedPending || deviceStatus?.led_status === 'ON'}
-                      onClick={() => toggleDevice('LED', 'ON')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.led_status === 'ON' ? 'bg-white shadow-sm text-yellow-600' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
+                      disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'ON'}
+                      onClick={() => toggleBuzzer('ON')}
+                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.buzzer_status === 'ON' ? 'bg-white shadow-sm text-red-600' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
                     >
                       ON
                     </button>
                     <button 
-                      disabled={isLedPending || deviceStatus?.led_status === 'OFF'}
-                      onClick={() => toggleDevice('LED', 'OFF')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.led_status === 'OFF' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
-                    >
-                      OFF
-                    </button>
-                  </div>
-                </div>
-
-                {/* Pump Control */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-4 rounded-2xl ${deviceStatus?.pump_status === 'ON' ? 'bg-blue-100' : 'bg-gray-200'}`}>
-                      <Power className={`w-6 h-6 ${deviceStatus?.pump_status === 'ON' ? 'text-blue-600' : 'text-gray-500'}`} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800">Water Pump</p>
-                      <p className="text-xs font-medium text-gray-500">{isPumpPending ? 'Syncing...' : 'Relay Control'}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 bg-gray-200/50 p-1 rounded-xl">
-                    <button 
-                      disabled={isPumpPending || deviceStatus?.pump_status === 'ON'}
-                      onClick={() => toggleDevice('PUMP', 'ON')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.pump_status === 'ON' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
-                    >
-                      ON
-                    </button>
-                    <button 
-                      disabled={isPumpPending || deviceStatus?.pump_status === 'OFF'}
-                      onClick={() => toggleDevice('PUMP', 'OFF')}
-                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.pump_status === 'OFF' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
+                      disabled={isBuzzerPending || deviceStatus?.buzzer_status === 'OFF'}
+                      onClick={() => toggleBuzzer('OFF')}
+                      className={`px-5 py-2 rounded-lg font-bold text-sm transition-all ${deviceStatus?.buzzer_status === 'OFF' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} disabled:opacity-50`}
                     >
                       OFF
                     </button>
@@ -289,7 +253,7 @@ export default function DashboardClient({
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-lg font-black text-gray-800 uppercase tracking-wider flex items-center gap-2">
               <Activity className="w-5 h-5 text-emerald-500" />
-              Moisture Trend
+              Temperature Trend
             </h2>
             <span className="px-4 py-1.5 bg-gray-50 border border-gray-100 text-gray-500 text-xs font-bold rounded-full uppercase tracking-wider">
               Live Data
@@ -301,9 +265,9 @@ export default function DashboardClient({
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorMoisture" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -318,20 +282,20 @@ export default function DashboardClient({
                     axisLine={false} 
                     tickLine={false} 
                     tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 600 }}
-                    domain={[0, 100]}
+                    domain={['dataMin - 1', 'dataMax + 1']}
                   />
                   <Tooltip 
                     contentStyle={{ borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    itemStyle={{ fontWeight: 'bold', color: '#10b981' }}
-                    formatter={(value: any) => [`${value}%`, 'Moisture']}
+                    itemStyle={{ fontWeight: 'bold', color: '#f97316' }}
+                    formatter={(value: any) => [`${parseFloat(value).toFixed(1)} °C`, 'Temperature']}
                   />
                   <Area 
                     type="monotone" 
-                    dataKey="value" 
-                    stroke="#10b981" 
+                    dataKey="temperature" 
+                    stroke="#f97316" 
                     strokeWidth={4}
                     fillOpacity={1} 
-                    fill="url(#colorMoisture)" 
+                    fill="url(#colorTemp)" 
                     animationDuration={1500}
                   />
                 </AreaChart>
@@ -349,7 +313,7 @@ export default function DashboardClient({
 
       {/* Right Column: Chat UI */}
       <div className="xl:col-span-1 h-full min-h-[600px]">
-        <ChatUI />
+        <ChatUI sensorData={{ ...latestData, buzzer_status: deviceStatus?.buzzer_status }} />
       </div>
 
     </div>

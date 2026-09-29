@@ -3,40 +3,23 @@
 #include "wifi_manager.h"
 #include "supabase_client.h"
 #include "sensor_module.h"
-#include "led_controller.h"
-#include "pump_controller.h"
-#include "command_handler.h"
-#include "device_status.h"
-
-#define WDT_TIMEOUT 30
 
 unsigned long lastSensorUpdate = 0;
 unsigned long lastCommandCheck = 0;
+String currentBuzzerStatus = "OFF";
 
 void setup() {
     Serial.begin(115200);
     delay(1000);
-    Serial.println("Starting IoT Device...");
+    Serial.println("Starting Smart Sleep Monitor (with Buzzer)...");
 
-    // WDT is automatically handled by Arduino Core v3.0+ behind the scenes.
-
-    // Initialize modules
-    LED_Init();
-    Pump_Init();
     Sensor_Init();
+    Buzzer_Init();
     WiFi_Init();
-    
-    // Initial status report
-    DeviceStatus_Report();
 }
 
 void loop() {
-
-    // Ensure WiFi is connected
     WiFi_Maintain();
-    
-    // Maintain pump safety and PWM
-    Pump_Maintain();
 
     unsigned long currentMillis = millis();
 
@@ -44,24 +27,29 @@ void loop() {
     if (currentMillis - lastSensorUpdate >= SENSOR_UPDATE_INTERVAL) {
         lastSensorUpdate = currentMillis;
         
-        float moisture = SoilMoisture_Read();
-        int waterLevel = WaterLevel_Read();
-        int battery = Battery_Read();
+        float temp = Temperature_Read();
+        float light = Light_Read();
         
-        Serial.printf("Moisture: %.1f%%, Water Level: %d%%, Battery: %d%%\n", moisture, waterLevel, battery);
+        Serial.printf("Temp: %.1fC, Light: %.1f%%, Buzzer: %s\n", temp, light, currentBuzzerStatus.c_str());
         
-        // Push primary sensor (moisture) to Supabase (can be extended to push all)
-        Supabase_SendSensorData(moisture);
-        // Reuse already-read values — avoids ~450ms of duplicate blocking sensor reads
-        DeviceStatus_ReportCached(waterLevel, battery);
+        // Push to Supabase
+        Supabase_SendSleepData(temp, light);
     }
 
-    // Check for new commands every COMMAND_CHECK_INTERVAL ms
+    // Check for buzzer commands every COMMAND_CHECK_INTERVAL ms
     if (currentMillis - lastCommandCheck >= COMMAND_CHECK_INTERVAL) {
         lastCommandCheck = currentMillis;
-        String commandJson = Supabase_FetchCommand();
-        if (commandJson != "") {
-            CommandHandler_Process(commandJson);
+        String status = Supabase_FetchBuzzerStatus();
+        if (status != "" && status != currentBuzzerStatus) {
+            currentBuzzerStatus = status;
+            Serial.print("Buzzer status changed to: ");
+            Serial.println(status);
+            
+            if (status == "ON") {
+                Buzzer_Set(true);
+            } else {
+                Buzzer_Set(false);
+            }
         }
     }
 }
